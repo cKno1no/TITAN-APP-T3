@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+
+{% block title %}Cockpit | Titan OS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========================================================== */
+    /* 1. AMBIENT BACKGROUND & MESH GRADIENT                      */
+    /* ========================================================== */
+    body { background-color: #f1f5f9; position: relative; overflow-x: hidden; }
+    .ambient-blob {
+        position: fixed; filter: blur(80px); opacity: 0.5; z-index: -1;
+        border-radius: 50%; animation: float 15s infinite ease-in-out alternate;
+    }
+    .blob-1 { top: -5%; left: -5%; width: 400px; height: 400px; background: #c4b5fd; } 
+    .blob-2 { bottom: -10%; right: -5%; width: 500px; height: 500px; background: #bae6fd; animation-delay: -5s; } 
+    .blob-3 { top: 40%; left: 60%; width: 350px; height: 350px; background: #fde68a; animation-delay: -10s; } 
+    
+    @keyframes float {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(50px, 30px) scale(1.1); }
+        100% { transform: translate(-30px, 50px) scale(0.9); }
+    }
+
+    /* ========================================================== */
+    /* 2. GLASSMORPHISM & BENTO BOX CARDS                         */
+    /* ========================================================== */
+    .bento-card {
+        background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03); padding: 1.5rem; height: 100%;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .bento-card:hover {
+        transform: translateY(-5px); box-shadow: 0 20px 40px rgba(100, 116, 139, 0.1); background: rgba(255, 255, 255, 0.85);
+    }
+    .bento-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; }
+    .bento-title { font-size: 1.1rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px; margin: 0; display: flex; align-items: center; gap: 8px; }
+    
+    .bento-scroll-area { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding-right: 5px; max-height: 280px; }
+    .bento-scroll-area::-webkit-scrollbar { width: 5px; }
+    .bento-scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .bento-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+    .bento-scroll-area:hover::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
+
+    /* ========================================================== */
+    /* 3. DATA VISUALIZATION                                      */
+    /* ========================================================== */
+    .progress-ring {
+        width: 120px; height: 120px; border-radius: 50%;
+        background: conic-gradient(#6366f1 var(--progress), #e2e8f0 0deg);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.05); margin: 0 auto; transition: --progress 1.5s ease-out;
+    }
+    .progress-ring-inner {
+        width: 90px; height: 90px; background: rgba(255,255,255,0.95); border-radius: 50%; 
+        display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; color: #1e293b; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .data-list { list-style: none; padding: 0; margin: 0; }
+    .data-item {
+        background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.6);
+        border-radius: 16px; padding: 12px 15px; margin-bottom: 10px;
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        transition: transform 0.2s, background 0.2s; cursor: pointer;
+    }
+    .data-item:hover { background: rgba(255,255,255,0.9); transform: scale(1.02); }
+    .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem;}
+
+    /* ========================================================== */
+    /* 4. ENTRANCE ANIMATIONS                                     */
+    /* ========================================================== */
+    .stagger-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    .d-1 { animation-delay: 0.1s; } .d-2 { animation-delay: 0.2s; } .d-3 { animation-delay: 0.3s; }
+    .d-4 { animation-delay: 0.4s; } .d-5 { animation-delay: 0.5s; } .d-6 { animation-delay: 0.6s; }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    .glow-red { animation: glowRed 2s infinite alternate; }
+    @keyframes glowRed { from { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); } to { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); border-color: rgba(239, 68, 68, 0.5);} }
+
+    /* Custom Header cho Modal */
+    .modal-header-custom {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; border-radius: 1.5rem 1.5rem 0 0; padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set user_dept = session.get('bo_phan', '') | upper %}
+{% set user_role = session.get('user_role', '') | upper %}
+{% set is_kho = 'KHO' in user_dept or 'LOGISTICS' in user_dept %}
+{% set is_acc = 'KE TOAN' in user_dept or 'TAI CHINH' in user_dept %}
+{% set is_sales = 'KINH DOANH' in user_dept or 'SALES' in user_dept %}
+
+<div class="ambient-blob blob-1"></div>
+<div class="ambient-blob blob-2"></div>
+<div class="ambient-blob blob-3"></div>
+
+<div class="container-fluid py-4">
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-8 stagger-up d-1 order-0">
+            <div class="bento-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(168, 85, 247, 0.9)); color: white; border: none; overflow: visible;">
+                <i class="fas fa-cube position-absolute text-white opacity-10" style="font-size: 15rem; right: -20px; top: -50px; z-index: 0;"></i>
+                
+                <div class="d-flex flex-column flex-md-row justify-content-between h-100 position-relative z-index-1 gap-4">
+                    <div class="d-flex flex-column justify-content-center flex-grow-1">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <img src="{{ dashboard_data.user_avatar }}" class="rounded-circle border border-2 border-white shadow-sm" style="width: 64px; height: 64px; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?background=random&color=fff&size=64&bold=true&name={{ session.user_shortname }}'">
+                            <div>
+                                <h3 class="fw-bolder mb-0 tracking-tight text-white">Chào, {{ session.user_shortname }}! 👋</h3>
+                                <div class="badge bg-white text-primary rounded-pill px-3 mt-1 fw-bold shadow-sm">
+                                    <i class="fas fa-crown text-warning me-1"></i> Rank {{ dashboard_data.gamification.grade | default('D') }} 
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-2 mb-3 pe-md-4">
+                            <div class="d-flex justify-content-between text-white small fw-bold mb-1 opacity-90">
+                                <span><i class="fas fa-rocket text-warning me-1"></i> Tiến trình KPI Tháng</span>
+                                <span>{{ dashboard_data.gamification.total_score | default(0) }} / 100 Điểm</span>
+                            </div>
+                            <div class="progress" style="height: 12px; background-color: rgba(255,255,255,0.2); border-radius: 12px;">
+                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" 
+                                     style="width: {{ [dashboard_data.gamification.total_score|default(0), 100]|min }}%; box-shadow: 0 0 12px rgba(251, 191, 36, 0.9);"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white bg-opacity-25 rounded-4 p-3 backdrop-blur border border-white border-opacity-25">
+                            <h6 class="fw-bold mb-1 text-uppercase small tracking-widest"><i class="fas fa-bolt text-warning me-2"></i>Titan AI Briefing</h6>
+                            <p class="mb-0 fs-6 lh-sm opacity-90">
+                                {% if dashboard_data.task_brief and dashboard_data.task_brief.overdue > 0 %}
+                                    <strong class="text-warning">Gấp:</strong> Có {{ dashboard_data.task_brief.overdue }} Task trễ hạn. Xử lý ngay để giữ điểm số!
+                                {% else %}
+                                    Lịch trình an toàn. Có {{ dashboard_data.task_brief.today | default(0) }} Task trong ngày.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex flex-column justify-content-center gap-2 align-items-md-end flex-shrink-0">
+                        <a href="{{ url_for('task_bp.task_dashboard') }}" target="_blank" class="btn btn-light text-primary rounded-pill px-4 py-2 fw-bold shadow"><i class="fas fa-plus me-2"></i>Lên Plan Hôm Nay</a>
+                        <a href="{{ url_for('crm_bp.nhap_lieu') }}" target="_blank" class="btn btn-info text-white rounded-pill px-4 py-2 fw-bold shadow-sm"><i class="fas fa-edit me-2"></i>Viết CRM Nhanh</a>
+                        <a href="{{ url_for('kpi_evaluation_bp.kpi_dashboard') }}" target="_blank" class="btn btn-warning text-dark rounded-pill px-4 py-2 fw-bold shadow-sm mt-1"><i class="fas fa-chart-pie me-1"></i> Chi Tiết Điểm KPI</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4 stagger-up d-2 {% if is_acc %}order-1{% else %}order-2{% endif %}">
+            <div class="bento-card {% if (dashboard_data.task_brief.overdue > 0) or (dashboard_data.overdue_debt|length > 0) %}glow-red{% endif %}">
+                <div class="bento-header">
+                    <h5 class="bento-title"><span class="bg-danger text-white rounded p-1 me-1"><i class="fas fa-fire fa-fw"></i></span> Khẩn Cấp</h5>
+                </div>
+                <div class="bento-scroll-area d-flex flex-column justify-content-center">
+                    
+                    {% if dashboard_data.task_brief and dashboard_data.task_brief.overdue > 0 %}
+                    <div class="data-item text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalTasks">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="data-icon bg-danger bg-opacity-10 text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div><h6 class="mb-0 fw-bold text-dark">Kỷ luật Task</h6><small class="text-muted">{{ dashboard_data.task_brief.overdue }} task trễ hạn</small></div>
+                        </div>
+                        <i class="fas fa-search-plus text-muted opacity-50"></i>
+                    </div>
+                    {% endif %}
+
+                    {% if dashboard_data.overdue_debt and dashboard_data.overdue_debt|length > 0 %}
+                    <div class="data-item text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalDebt">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="data-icon bg-danger bg-opacity-10 text-danger"><i class="fas fa-wallet"></i></div>
+                            <div><h6 class="mb-0 fw-bold text-dark">Nợ Quá Hạn</h6><small class="text-muted">{{ dashboard_data.overdue_debt|length }} KH vi phạm</small></div>
+                        </div>
+                        <i class="fas fa-search-plus text-muted opacity-50"></i>
+                    </div>
+                    {% endif %}
+                    
+                    {% if (not dashboard_data.task_brief or dashboard_data.task_brief.overdue == 0) and (not dashboard_data.overdue_debt or dashboard_data.overdue_debt|length == 0) %}
+                    <div class="text-center text-success py-4">
+                        <i class="fas fa-shield-alt fa-3x mb-2 opacity-50"></i>
+                        <h6 class="fw-bold mb-0">Tuyệt vời! Không có cảnh báo.</h6>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3 stagger-up d-3 {% if is_sales %}order-1{% elif is_kho %}order-5{% else %}order-3{% endif %}">
+            <div class="bento-card text-center justify-content-center">
+                <h5 class="bento-title justify-content-center mb-3 text-secondary">Mục Tiêu Tháng</h5>
+                <div class="progress-ring my-3" style="--progress: {{ dashboard_data.sales_kpi.percent|default(0) }}%;">
+                    <div class="progress-ring-inner">{{ dashboard_data.sales_kpi.percent|round(1) }}%</div>
+                </div>
+                <div class="fw-bold text-dark fs-5 mt-2">{{ dashboard_data.sales_kpi.actual | format_tr }}</div>
+                <small class="text-muted fw-semibold">Target: {{ dashboard_data.sales_kpi.target | format_tr }}</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-5 stagger-up d-4 order-4">
+            <div class="bento-card">
+                <div class="bento-header mb-2">
+                    <h5 class="bento-title"><span class="bg-warning text-white rounded p-1 me-1"><i class="fas fa-star fa-fw"></i></span> Văn Hóa Titan</h5>
+                </div>
+                <div class="d-flex flex-column gap-3 mt-2">
+                    <div class="data-item p-3" style="background: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(254, 243, 199, 0.5)); border-left: 4px solid #f59e0b;">
+                        <div style="min-width:0;">
+                            <span class="badge bg-danger rounded-pill pulse-animation mb-1">Tin mới</span>
+                            <h6 class="fw-bold text-dark mb-1 text-truncate">
+                                {% if dashboard_data.hall_of_fame %}{{ dashboard_data.hall_of_fame.author }} vinh danh {{ dashboard_data.hall_of_fame.target }}{% else %}Đại Sảnh Danh Vọng đang chờ{% endif %}
+                            </h6>
+                            <small class="text-muted d-block text-truncate">{% if dashboard_data.hall_of_fame %}"{{ dashboard_data.hall_of_fame.title }}"{% else %}Gieo một hạt mầm hạnh phúc.{% endif %}</small>
+                        </div>
+                        <a href="{{ url_for('portal_bp.hall_of_fame_share') }}" target="_blank" class="btn btn-outline-warning btn-sm rounded-circle bg-white shadow-sm flex-shrink-0" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-pen"></i></a>
+                    </div>
+                    <div class="data-item p-3" style="background: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(220, 252, 231, 0.5)); border-left: 4px solid #10b981;">
+                        <div class="w-100 pe-3" style="min-width:0;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <h6 class="fw-bold text-dark mb-0 text-truncate"><i class="fas fa-graduation-cap text-success me-1"></i> Đào tạo</h6>
+                                <span class="fw-bold text-success small">{{ dashboard_data.training.progress|default(0) }}%</span>
+                            </div>
+                            <small class="text-muted d-block text-truncate">Nâng cao năng lực chuyên môn và kỹ năng quản lý.</small>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: {{ dashboard_data.training.progress|default(0) }}%;"></div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('training_bp.training_dashboard') }}" target="_blank" class="btn btn-outline-success btn-sm rounded-circle bg-white shadow-sm flex-shrink-0" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-play"></i></a>
+                    </div>
+                    <div class="data-item p-3" style="background: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(224, 242, 254, 0.5)); border-left: 4px solid #0ea5e9;">
+                        <div class="w-100 pe-3" style="min-width:0;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <h6 class="fw-bold text-dark mb-0 text-truncate"><i class="fas fa-users text-info me-1"></i> Đánh Giá Chéo</h6>
+                            </div>
+                            <small class="text-muted d-block">Ghi nhận tinh thần phối hợp của đồng nghiệp.</small>
+                        </div>
+                        <a href="/kpi-eval/peer-review" target="_blank" class="btn btn-outline-info btn-sm rounded-circle bg-white shadow-sm flex-shrink-0" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4 stagger-up d-5 {% if is_kho %}order-1{% else %}order-5{% endif %}">
+            <div class="bento-card">
+                <div class="bento-header">
+                    <h5 class="bento-title"><span class="bg-primary text-white rounded p-1 me-1"><i class="fas fa-truck fa-fw"></i></span> Giao Hàng & Tồn Kho</h5>
+                </div>
+                <div class="bento-scroll-area">
+                    <ul class="data-list">
+                        {% if dashboard_data.pending_deliveries and dashboard_data.pending_deliveries|length > 0 %}
+                        <li class="data-item" data-bs-toggle="modal" data-bs-target="#modalDelivery">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="data-icon bg-primary bg-opacity-10 text-primary"><i class="fas fa-box"></i></div>
+                                <div><div class="fw-bold text-dark small">Đơn chờ giao</div><small class="text-muted">{{ dashboard_data.pending_deliveries|length }} nhóm đơn</small></div>
+                            </div>
+                            <i class="fas fa-search-plus text-primary fs-5"></i>
+                        </li>
+                        {% endif %}
+                        
+                        {% if dashboard_data.urgent_replenish and dashboard_data.urgent_replenish|length > 0 %}
+                        <li class="data-item" data-bs-toggle="modal" data-bs-target="#modalReplenish">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="data-icon bg-success bg-opacity-10 text-success"><i class="fas fa-cubes"></i></div>
+                                <div><div class="fw-bold text-dark small">Gợi ý dự phòng</div><small class="text-success fw-bold">{{ dashboard_data.urgent_replenish|length }} KH cần nhập</small></div>
+                            </div>
+                            <i class="fas fa-search-plus text-primary fs-5"></i>
+                        </li>
+                        {% endif %}
+                        
+                        {% if not dashboard_data.pending_deliveries and not dashboard_data.urgent_replenish %}
+                        <div class="text-center text-muted py-4 small">Kho vận hành ổn định.</div>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-8 stagger-up d-6 {% if is_sales %}order-4{% else %}order-6{% endif %}">
+            <div class="bento-card">
+                <div class="bento-header">
+                    <h5 class="bento-title"><span class="bg-info text-white rounded p-1 me-1"><i class="fas fa-chart-line fa-fw"></i></span> Phễu Kinh Doanh & CRM</h5>
+                    <ul class="nav nav-pills small fw-bold" id="bentoTab" role="tablist">
+                        <li class="nav-item"><a class="nav-link active rounded-pill px-3 py-1" data-bs-toggle="tab" href="#tab-quotes">Báo giá</a></li>
+                        <li class="nav-item"><a class="nav-link rounded-pill px-3 py-1 text-muted" data-bs-toggle="tab" href="#tab-crm">Nhật ký CRM</a></li>
+                    </ul>
+                </div>
+                
+                <div class="tab-content flex-grow-1" style="overflow: hidden;">
+                    <div class="tab-pane fade show active h-100" id="tab-quotes">
+                        <div class="row h-100">
+                            <div class="col-md-6 border-end border-light bento-scroll-area pe-3">
+                                <h6 class="text-muted small fw-bold text-uppercase mb-2">Báo giá chờ chốt</h6>
+                                <ul class="data-list">
+                                    {% if dashboard_data.active_quotes and dashboard_data.active_quotes|length > 0 %}
+                                    <li class="data-item p-3" data-bs-toggle="modal" data-bs-target="#modalQuotes">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="data-icon bg-info bg-opacity-10 text-info"><i class="fas fa-file-signature"></i></div>
+                                            <div><div class="fw-bold text-dark">Danh sách Báo giá</div><small class="text-muted">{{ dashboard_data.active_quotes|length }} KH đang chờ duyệt</small></div>
+                                        </div>
+                                        <i class="fas fa-search-plus text-primary fs-5"></i>
+                                    </li>
+                                    {% else %}
+                                    <div class="text-center text-muted small py-3">Không có báo giá theo dõi.</div>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            
+                            <div class="col-md-6 bento-scroll-area ps-md-3 mt-3 mt-md-0">
+                                <h6 class="text-muted small fw-bold text-uppercase mb-2">Lịch Giao (+/- 30 ngày)</h6>
+                                <ul class="data-list">
+                                    {% if dashboard_data.orders_flow and dashboard_data.orders_flow|length > 0 %}
+                                    <li class="data-item p-3" data-bs-toggle="modal" data-bs-target="#modalOrdersFlow">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="data-icon bg-success bg-opacity-10 text-success"><i class="fas fa-calendar-check"></i></div>
+                                            <div><div class="fw-bold text-dark">Theo dõi Lịch giao</div><small class="text-muted">{{ dashboard_data.orders_flow|length }} đơn hàng sắp đến hạn</small></div>
+                                        </div>
+                                        <i class="fas fa-search-plus text-primary fs-5"></i>
+                                    </li>
+                                    {% else %}
+                                    <div class="text-center text-muted small py-3">Không có lịch giao.</div>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade h-100" id="tab-crm">
+                        <div class="bento-scroll-area">
+                            <ul class="data-list">
+                                {% for r in dashboard_data.recent_reports %}
+                                <li class="data-item">
+                                    <div class="d-flex align-items-center gap-3" style="min-width:0;">
+                                        <div class="badge bg-light text-secondary border fw-bold">#{{ r.STT }}</div>
+                                        <div style="min-width:0;">
+                                            <div class="fw-bold text-dark text-truncate">{{ r['TEN DOI TUONG'] }}</div>
+                                            <div class="small text-muted text-truncate"><i class="far fa-clock me-1"></i>{{ r.NGAY | format_date }} - {{ r.MucDich }}</div>
+                                        </div>
+                                    </div>
+                                    <a href="/report_detail_page/{{ r.STT }}" target="_blank" class="btn btn-sm btn-light rounded-circle shadow-sm"><i class="fas fa-eye text-primary"></i></a>
+                                </li>
+                                {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-clipboard-list fa-3x mb-2 opacity-25"></i><p>Chưa có báo cáo CRM tuần này.</p>
+                                </div>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTasks" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem; background: #f8fafc;">
+            <div class="modal-header-custom d-flex justify-content-between">
+                <h5 class="modal-title fw-bold mb-0"><i class="fas fa-tasks me-2"></i>Chi Tiết Task Trễ Hạn / Khẩn Cấp</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive bg-white rounded-4 shadow-sm border border-light p-1">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr><th>Trạng Thái</th><th>Tiêu đề Task</th><th>Khách Hàng</th><th>Cập nhật</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for task in dashboard_data.tasks %}
+                            <tr>
+                                <td>
+                                    {% if task.Status == 'BLOCKED' %} <span class="badge bg-danger">Khóa</span>
+                                    {% elif task.Priority == 'HIGH' %} <span class="badge bg-warning text-dark">Cao</span>
+                                    {% else %} <span class="badge bg-secondary">Bình thường</span> {% endif %}
+                                </td>
+                                <td class="fw-bold"><a href="/task_dashboard?open={{ task.TaskID }}" target="_blank" class="text-decoration-none">{{ task.Title }}</a></td>
+                                <td>{{ task.ObjectID }}</td>
+                                <td class="small text-muted">{{ task.LastUpdated | format_date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 1.5rem 1.5rem;">
+                <a href="{{ url_for('task_bp.task_dashboard') }}" target="_blank" class="btn btn-primary rounded-pill px-4">Đi tới trang Quản lý Task <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDebt" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem; background: #f8fafc;">
+            <div class="modal-header-custom d-flex justify-content-between" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
+                <h5 class="modal-title fw-bold mb-0"><i class="fas fa-wallet me-2"></i>Danh Sách Nợ Quá Hạn</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive bg-white rounded-4 shadow-sm border border-light p-1">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr><th>Khách Hàng</th><th class="text-center">Số Ngày Trễ</th><th class="text-end">Dư Nợ Quá Hạn</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for debt in dashboard_data.overdue_debt %}
+                            <tr>
+                                <td class="fw-bold text-dark">{{ debt.ObjectName|default('Không tên', true) }}</td>
+                                <td class="text-center"><span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Trễ {{ debt.ReDueDays }} ngày</span></td>
+                                <td class="text-end fw-bolder text-danger">{{ debt.TotalOverdueDebt | format_tr }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 1.5rem 1.5rem;">
+                <a href="{{ url_for('kpi_bp.ar_aging_dashboard') }}" target="_blank" class="btn btn-danger rounded-pill px-4">Xem báo cáo Công nợ <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalQuotes" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem; background: #f8fafc;">
+            <div class="modal-header-custom d-flex justify-content-between" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
+                <h5 class="modal-title fw-bold mb-0"><i class="fas fa-file-signature me-2"></i>Báo Giá Đang Chờ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive bg-white rounded-4 shadow-sm border border-light p-1">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr><th>Số Báo Giá</th><th>Khách Hàng</th><th>Ngày Lập</th><th class="text-end">Giá Trị</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for group in dashboard_data.active_quotes %}
+                                {% for q in group.details %}
+                                <tr>
+                                    <td class="fw-bold text-primary">{{ q.VoucherNo }}</td>
+                                    <td>{{ group.name }}</td>
+                                    <td>{{ q.QuotationDate | format_date }}</td>
+                                    <td class="text-end fw-bold">{{ q.TotalAmount | format_tr }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 1.5rem 1.5rem;">
+                <a href="{{ url_for('approval_bp.quote_approval_dashboard') }}" target="_blank" class="btn btn-info text-white rounded-pill px-4">Tới Trang Phê Duyệt <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalOrdersFlow" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem; background: #f8fafc;">
+            <div class="modal-header-custom d-flex justify-content-between" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <h5 class="modal-title fw-bold mb-0"><i class="fas fa-calendar-check me-2"></i>Theo Dõi Lịch Giao</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive bg-white rounded-4 shadow-sm border border-light p-1">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr><th>Số Đơn (SO)</th><th>Khách Hàng</th><th>Ngày Hẹn Giao</th><th class="text-end">Giá Trị</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for group in dashboard_data.orders_flow %}
+                                {% for o in group.details %}
+                                <tr>
+                                    <td class="fw-bold text-success">{{ o.VoucherNo }}</td>
+                                    <td>{{ group.name }}</td>
+                                    <td>
+                                        <span class="{% if o.IsOverdue %}badge bg-danger{% else %}text-dark{% endif %}">
+                                            {{ o.DeliveryDate | format_date }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end fw-bold">{{ o.SaleAmount | format_tr }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 1.5rem 1.5rem;">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDelivery" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem; background: #f8fafc;">
+            <div class="modal-header-custom d-flex justify-content-between" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                <h5 class="modal-title fw-bold mb-0"><i class="fas fa-truck-loading me-2"></i>Chi Tiết Đơn Chờ Giao</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive bg-white rounded-4 shadow-sm border border-light p-1">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr><th>Số Lệnh / Đơn</th><th>Khách Hàng</th><th>Ngày Yêu Cầu</th><th>Ngày Kế Hoạch</th><th>Trạng Thái</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for group in dashboard_data.pending_deliveries %}
+                                {% for d in group.details %}
+                                <tr>
+                                    <td class="fw-bold text-primary">{{ d.VoucherNo }}</td>
+                                    <td>{{ group.name }}</td>
+                                    <td>{{ d.Request_Day | format_date }}</td>
+                                    <td>
+                                        <span class="{% if d.IsOverdue %}badge bg-danger{% else %}fw-bold text-dark{% endif %}">
+                                            {{ d.Planned_Day | format_date }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if d.IsOverdue %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Trễ hạn</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Đang chờ</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 1.5rem 1.5rem;">
+                <a href="{{ url_for('delivery_bp.delivery_dashboard') }}" target="_blank" class="btn btn-primary rounded-pill px-4">Đến bảng Điều vận <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalReplenish" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem; background: #f8fafc;">
+            <div class="modal-header-custom d-flex justify-content-between" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+                <h5 class="modal-title fw-bold mb-0"><i class="fas fa-cubes me-2"></i>Gợi Ý Nhập Dự Phòng Tồn Kho</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive bg-white rounded-4 shadow-sm border border-light p-1">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr><th>Khách Hàng (Tên Rút Gọn)</th><th>Mặt Hàng (Item)</th><th class="text-end">Gợi Ý Nhập (SL)</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for group in dashboard_data.urgent_replenish %}
+                                {% for item in group.details %}
+                                <tr>
+                                    <td class="fw-bold">{{ group.name }}</td>
+                                    <td class="text-primary">{{ item.ItemName|default(item.InventoryName) }}</td>
+                                    <td class="text-end fw-bolder text-success">{{ item.QuantitySuggestion }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 1.5rem 1.5rem;">
+                <a href="{{ url_for('lookup_bp.customer_replenishment_dashboard') }}" target="_blank" class="btn btn-success rounded-pill px-4">Tới trang Tồn kho dự phòng <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Xử lý hiệu ứng vòng tròn SVG chạy lúc mới load trang
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(() => {
+            const rings = document.querySelectorAll('.progress-ring');
+            rings.forEach(ring => {
+                let currentProg = ring.style.getPropertyValue('--progress');
+                ring.style.setProperty('--progress', '0%');
+                setTimeout(() => { ring.style.setProperty('--progress', currentProg); }, 100);
+            });
+        }, 500);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% set is_high_priority = task.Priority == 'HIGH' %}
+{% set is_alert = task.Priority == 'ALERT' %}
+{% set is_blocked = task.Status == 'BLOCKED' %}
+{% set is_waiting = task.Status == 'WAITING_CONFIRM' %}
+
+{# XỬ LÝ TRỄ HẠN (DUE DATE) - Tự động đỏ rực nếu quá hạn mà chưa đóng #}
+{% set is_overdue = False %}
+{% if task.DueDate and task.Status not in ['COMPLETED', 'WAITING_CONFIRM'] %}
+    {% if task.DueDate[:10] < current_date %} 
+        {% set is_overdue = True %}
+    {% endif %}
+{% endif %}
+
+<div class="task-card 
+    {% if is_overdue %}border-danger bg-danger text-white{% endif %}
+    {% if is_waiting %}border-warning bg-warning-subtle{% endif %}
+    {% if is_blocked %}border-danger bg-danger-subtle{% endif %}
+    {% if is_high_priority %}priority-high shadow-sm{% elif is_alert %}priority-alert{% endif %}" 
+    onclick="openUpdateModal({{ task.TaskID }})">
+    
+    <div class="d-flex justify-content-between align-items-start mb-1">
+        <span class="badge {% if is_overdue %}bg-white text-danger{% else %}bg-primary-subtle text-primary{% endif %} font-monospace" style="font-size: 0.7rem;">#{{ task.TaskID }}</span>
+        
+        {% if is_overdue %}
+            <span class="badge bg-danger animate__animated animate__flash animate__infinite shadow-sm">TRỄ HẠN</span>
+        {% elif is_waiting %}
+            <span class="badge bg-warning text-dark shadow-sm"><i class="fas fa-hourglass-half"></i> CHỜ DUYỆT</span>
+        {% elif is_blocked %}
+            <span class="badge bg-danger">ĐANG VƯỚNG</span>
+        {% endif %}
+    </div>
+
+    <div class="fw-bold mb-1 truncate-content" style="font-size: 0.95rem; color: {% if is_overdue %}#fff{% else %}var(--primary){% endif %};">
+        <i class="fas fa-bullseye me-1"></i> {{ task.ClientName or task.ObjectID or 'Công việc Nội bộ' }}
+    </div>
+
+    <div class="task-title-small mb-2" title="{{ task.Title }}" style="font-size: 0.8rem; line-height: 1.3; opacity: 0.9;">
+        {{ task.Title | truncate(45, True) }}
+        {% if is_high_priority %}<i class="fas fa-exclamation-circle text-warning ms-1" title="Ưu tiên cao"></i>{% endif %}
+        {% if is_alert %}<i class="fas fa-bell text-warning ms-1"></i>{% endif %}
+    </div>
+    
+    <div class="d-flex flex-wrap gap-1 mb-2">
+        <span class="badge bg-secondary" style="font-size: 0.65rem;"><i class="fas fa-user me-1"></i>{{ task.UserCode }}</span>
+        <span class="badge bg-info text-dark" style="font-size: 0.65rem;">{{ task.ProgressPercentage }}%</span>
+        
+        {% if task.DueDate %}
+            <span class="badge {% if is_overdue %}bg-dark text-white{% else %}bg-light text-danger border{% endif %}" style="font-size: 0.65rem;">
+                <i class="fas fa-clock me-1"></i>Hạn: {{ task.DueDate[:10] }}
+            </span>
+        {% endif %}
+    </div>
+    
+    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center" style="font-size: 0.75rem;">
+        <span class="text-muted {% if is_overdue %}text-white-50{% endif %}"><i class="far fa-calendar-plus me-1"></i>{{ task.TaskDateDisplay }}</span>
+        
+        <div class="d-flex gap-2 align-items-center">
+            {% if task.Attachments %}
+                <a href="{{ task.Attachments }}" target="_blank" class="{% if is_overdue %}text-white{% else %}text-danger{% endif %} fw-bold" 
+                   title="Mở Link đính kèm" onclick="event.stopPropagation();">
+                    <i class="fas fa-paperclip"></i>
+                </a>
+            {% endif %}
+
+            {% if task.LogCount and task.LogCount > 0 %}
+                <span title="Số lượng cập nhật/trao đổi"><i class="fas fa-comments {% if not is_overdue %}text-primary{% endif %}"></i> {{ task.LogCount }}</span>
+            {% endif %}
+            
+            {% if task.NoteCapTren %}
+                <span class="text-warning animate__animated animate__pulse animate__infinite ms-1" title="Sếp vừa có chỉ đạo!">
+                    <i class="fas fa-comment-dots fs-6"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+[2026-02-25 05:47:55,820] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-25 05:48:28,360] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-25 06:08:28,399] INFO in kpi_bp:62 [KD010]: CACHE HIT: sales_dash_KD010_def_from_def_to_all
+[2026-02-25 06:08:32,100] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-25 06:09:49,614] ERROR in app:875 [KD010]: Exception on /analysis/comparison [GET]
+Traceback (most recent call last):
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CRM STDD\utils.py", line 52, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\utils.py", line 129, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\blueprints\executive_bp.py", line 110, in comparison_dashboard
+    return render_template(
+        'comparison_dashboard.html',
+    ...<4 lines>...
+        user_context=user_context
+    )
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\CRM STDD\templates\comparison_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\CRM STDD\templates\base.html", line 121, in top-level template code
+    {% block header %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\CRM STDD\templates\base.html", line 192, in block 'header'
+    {% if user_context.role == 'ADMIN' or user_context.can('THEME_DARK') %}
+    ^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'None' has no attribute 'can'
+[2026-02-25 10:24:19,621] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...

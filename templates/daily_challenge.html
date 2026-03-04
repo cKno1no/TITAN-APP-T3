@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Challenge - Titan OS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --bg-light: #f8fafc;       /* Nền chính sáng nhẹ */
+        --bg-card: #ffffff;        /* Nền card trắng tinh */
+        --text-main: #1e293b;      /* Chữ xanh than đậm (dễ đọc nhất) */
+        --text-muted: #64748b;     /* Chữ phụ xám */
+        --accent-bright: #3b82f6;  /* Màu xanh dương nhận diện */
+        --border-color: #e2e8f0;   /* Viền nhẹ nhàng */
+        --question-bg: #eff6ff;    /* Nền câu hỏi xanh nhạt */
+    }
+    
+    body { 
+        background-color: var(--bg-light) !important; 
+        color: var(--text-main) !important; 
+        font-family: 'Inter', system-ui, sans-serif; 
+    }
+    
+    .hero-banner {
+        background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+        padding: 40px 0;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 30px;
+    }
+
+    .card { 
+        background-color: var(--bg-card); 
+        border-radius: 16px; 
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Vùng hiển thị câu hỏi tươi sáng */
+    .question-box {
+        background-color: var(--question-bg); 
+        border-radius: 12px;
+        padding: 25px;
+        border-left: 5px solid var(--accent-bright);
+    }
+    
+    .question-content {
+        color: var(--text-main); 
+        font-size: 1.1rem;
+        line-height: 1.7;
+        font-weight: 500;
+    }
+
+    /* Textarea trắng sạch sẽ */
+    .answer-textarea {
+        background-color: #ffffff !important;
+        color: var(--text-main) !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px;
+        padding: 15px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    .answer-textarea:focus {
+        border-color: var(--accent-bright) !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+    }
+
+    .badge-timer {
+        background: #1e293b;
+        color: #fbbf24;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-weight: bold;
+    }
+
+    .timer-critical { color: #f43f5e !important; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    .timeline-item { position: relative; padding-left: 25px; margin-bottom: 15px; border-left: 2px solid #e2e8f0; margin-left: 10px; }
+    .timeline-item::before {
+        content: ''; position: absolute; left: -7px; top: 5px; width: 12px; height: 12px;
+        border-radius: 50%; background-color: var(--accent-bright);
+    }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+{% endblock %}
+
+{% block content %}
+<div x-data="dailyChallengeApp()" x-init="initData()" x-cloak>
+
+    <div class="hero-banner">
+        <div class="container px-4 text-center">
+            <h1 class="fw-bold text-dark mb-2">🚀 Thử thách Mỗi Ngày</h1>
+            <p class="text-muted fs-5">Rèn luyện tư duy phân tích và kiến thức hệ thống.</p>
+        </div>
+    </div>
+
+    <div class="container px-4 pb-5">
+        <div class="row g-4">
+            
+            <div class="col-lg-8">
+                <template x-if="isLoading">
+                    <div class="card p-5 text-center border-0">
+                        <div class="spinner-border text-primary mb-3"></div>
+                        <p class="text-muted">Đang tải dữ liệu thử thách...</p>
+                    </div>
+                </template>
+
+                <template x-if="!isLoading && !question">
+                    <div class="card p-5 text-center shadow-sm border-0">
+                        <div class="mb-3"><i class="fas fa-calendar-check fs-1 text-primary opacity-20"></i></div>
+                        <h4 class="text-dark fw-bold">Hiện chưa có thử thách nào</h4>
+                        <p class="text-muted">Đề bài mới sẽ xuất hiện vào: <b class="text-dark">08:30, 13:30 và 16:45</b>.</p>
+                        <p class="text-primary small fw-bold">Mốc tiếp theo: <span x-text="nextSlot"></span></p>
+                    </div>
+                </template>
+
+                <template x-if="!isLoading && question">
+                    <div class="animate__animated animate__fadeIn">
+                        
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center p-4">
+                                <span class="text-primary fw-bold small"><i class="fas fa-lightbulb me-2"></i> NỘI DUNG CÂU HỎI</span>
+                                <div class="badge-timer" x-show="sessionState === 'PENDING' || sessionState === 'AVAILABLE'">
+                                    <i class="fas fa-clock me-2"></i>
+                                    <span :class="secondsLeft < 180 ? 'timer-critical' : ''" x-text="formatTime(secondsLeft)"></span>
+                                </div>
+                            </div>
+                            <div class="card-body p-4 pt-0">
+                                <div class="question-box">
+                                    <template x-if="question.Image">
+                                        <div class="mb-4 text-center">
+                                            <img :src="question.Image" 
+                                                @error="$el.style.display='none'" 
+                                                class="img-fluid rounded shadow-sm border bg-white" 
+                                                style="max-height: 450px; object-fit: contain; padding: 5px; cursor: zoom-in;"
+                                                @click="window.open(question.Image, '_blank')">
+                                            <div class="text-muted small mt-2"><i class="fas fa-search-plus me-1"></i> Nhấn vào ảnh để phóng to</div>
+                                        </div>
+                                    </template>
+                                    <div class="question-content" x-html="formatText(question.Content)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                
+                                <template x-if="sessionState === 'PENDING' || sessionState === 'AVAILABLE'">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="mb-0 text-dark fw-bold">Bài làm của sếp</h5>
+                                            <span class="text-success small fw-medium"><i class="fas fa-check-circle me-1"></i> Đã bật tự động lưu</span>
+                                        </div>
+                                        
+                                        <textarea class="form-control answer-textarea mb-4 shadow-sm" rows="12" 
+                                                  x-model="userAnswer" 
+                                                  @input="saveDraft()"
+                                                  :disabled="isTimeUp"
+                                                  placeholder="Sếp hãy phân tích và nhập câu trả lời tại đây..."></textarea>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i> Sếp có 15 phút làm bài từ lúc mở trang.</p>
+                                            <button class="btn btn-primary px-5 py-2 fw-bold shadow" 
+                                                    style="border-radius: 10px;"
+                                                    @click="submitAnswer()" 
+                                                    :disabled="isSubmitting || userAnswer.trim().length < 5 || isTimeUp">
+                                                <i class="fas fa-paper-plane me-2"></i> 
+                                                <span x-text="isSubmitting ? 'Đang gửi...' : 'Gửi bài làm'"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="sessionState === 'SUBMITTED'">
+                                    <div class="text-center py-4">
+                                        <div class="mb-3"><i class="fas fa-cloud-upload-alt text-primary fs-1"></i></div>
+                                        <h4 class="text-dark fw-bold">Bài làm đã được ghi nhận</h4>
+                                        <p class="text-muted">AI đang xếp hàng chấm điểm. Sếp hãy kiểm tra Mailbox sau các mốc tổng kết nhé.</p>
+                                        <div class="text-start mt-4 p-4 bg-light border rounded shadow-sm">
+                                            <span class="text-primary d-block mb-2 small fw-bold">NỘI DUNG SẾP ĐÃ GỬI:</span>
+                                            <div class="text-dark" style="white-space: pre-wrap; line-height: 1.6;" x-text="userAnswer"></div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="sessionState === 'DONE' || sessionState === 'COMPLETED'">
+                                    <div class="py-2 text-center">
+                                        <div class="p-4 mb-4 rounded border-0 bg-primary bg-opacity-10">
+                                            <h3 class="text-primary fw-bold mb-1"><i class="fas fa-award me-2"></i> Thử thách hoàn tất</h3>
+                                            <p class="text-muted mb-0">Nhận xét chi tiết và điểm số đã được gửi vào Hòm thư của sếp.</p>
+                                        </div>
+                                        <div class="text-start p-4 bg-light border rounded">
+                                            <span class="text-muted d-block mb-2 small fw-bold">LỜI GIẢI CỦA SẾP:</span>
+                                            <div class="text-muted" style="white-space: pre-wrap;" x-text="userAnswer"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-0 p-4">
+                        <h6 class="mb-0 text-dark fw-bold"><i class="fas fa-history me-2 text-primary"></i> Nhật ký hoạt động</h6>
+                    </div>
+                    <div class="card-body p-4 pt-0">
+                        <template x-if="history.length === 0">
+                            <p class="text-muted text-center py-4 small">Chưa có lịch sử tham gia.</p>
+                        </template>
+                        <div class="overflow-auto" style="max-height: 600px;">
+                            <template x-for="h in history" :key="h.SessionID">
+                                <div class="timeline-item">
+                                    <div class="text-muted small mb-1" x-text="h.FormattedDate"></div>
+                                    <div class="fw-bold text-dark mb-1 text-truncate" x-text="h.QuestionContent"></div>
+                                    <span class="badge" :class="h.Status === 'COMPLETED' ? 'bg-success bg-opacity-10 text-success' : 'bg-primary bg-opacity-10 text-primary'"
+                                          x-text="h.Status === 'COMPLETED' ? 'Đã chấm' : 'Chờ chấm'"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function dailyChallengeApp() {
+        return {
+            isLoading: true,
+            question: null,
+            sessionState: 'PENDING',
+            userAnswer: '',
+            isSubmitting: false,
+            history: [],
+            nextSlot: '--:--',
+            secondsLeft: 900, 
+            isTimeUp: false,
+            timer: null,
+
+            async initData() {
+                this.isLoading = true;
+                try {
+                    const res = await fetch('/api/challenge/status');
+                    const data = await res.json();
+                    
+                    if(data.status === 'AVAILABLE') {
+                        this.question = { 
+                            ID: data.session_id, 
+                            Content: data.question.Content,
+                            Image: data.question.Image 
+                        };
+                        this.sessionState = 'PENDING';
+                        this.secondsLeft = data.seconds_left || 900;
+                        this.nextSlot = data.next_slot;
+                        
+                        const draft = localStorage.getItem('draft_daily_' + this.question.ID);
+                        if (draft) this.userAnswer = draft;
+                        
+                        this.startTimer();
+                    } else if (data.status === 'WAITING') {
+                        this.question = null;
+                        this.nextSlot = data.next_slot;
+                        setTimeout(() => this.initData(), 60000);
+                    } else {
+                        // FIX LỖI HIỂN THỊ: Gán đúng cấu trúc question cho trạng thái đã nộp/đã chấm
+                        this.sessionState = data.status; 
+                        this.question = typeof data.question === 'object' ? data.question : { Content: data.question };
+                        this.userAnswer = data.user_answer || '';
+                    }
+
+                    const hRes = await fetch('/api/training/daily_challenge/history');
+                    const hData = await hRes.json();
+                    if(hData.success) this.history = hData.history;
+
+                } catch(e) { console.error("Lỗi:", e); }
+                finally { this.isLoading = false; }
+            },
+
+            startTimer() {
+                if(this.timer) clearInterval(this.timer);
+                this.timer = setInterval(() => {
+                    if (this.secondsLeft > 0) {
+                        this.secondsLeft--;
+                    } else {
+                        clearInterval(this.timer);
+                        this.isTimeUp = true;
+                        this.autoSubmit();
+                    }
+                }, 1000);
+            },
+
+            formatTime(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            },
+
+            saveDraft() {
+                if(this.question && this.question.ID) {
+                    localStorage.setItem('draft_daily_' + this.question.ID, this.userAnswer);
+                }
+            },
+
+            async autoSubmit() {
+                if (this.sessionState === 'PENDING') {
+                    await this.submitAnswer(true);
+                }
+            },
+
+            async submitAnswer(isAuto = false) {
+                if(this.isSubmitting) return;
+                this.isSubmitting = true;
+                
+                try {
+                    const res = await fetch('/api/challenge/submit', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_id: this.question.ID,
+                            answer: this.userAnswer
+                        })
+                    });
+                    const result = await res.json();
+                    
+                    if(result.success) {
+                        this.sessionState = 'SUBMITTED';
+                        localStorage.removeItem('draft_daily_' + this.question.ID);
+                        if(this.timer) clearInterval(this.timer);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: isAuto ? 'Hết giờ làm bài!' : 'Thành công!',
+                            text: isAuto ? 'Hệ thống đã lưu nội dung hiện có.' : 'Bài làm đã được gửi tới AI chấm điểm.',
+                            background: '#ffffff', color: '#1e293b', confirmButtonColor: '#3b82f6'
+                        });
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+            
+            formatText(text) {
+                if(!text) return '';
+                let formatted = text.replace(/\n/g, '<br>');
+                formatted = formatted.replace(/- ([A-F]):/g, '<strong>- $1:</strong>');
+                formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                return formatted;
+            }
+        }
+    }
+</script>
+{% endblock %}

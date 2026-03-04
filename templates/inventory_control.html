@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Thanh Tra Lỗi Tồn Kho SO | Titan OS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    .status-badge { font-size: 0.85rem; padding: 6px 12px; border-radius: 8px; font-weight: 600; white-space: nowrap; }
+    .row-danger { background-color: #fff0f0 !important; }
+    .row-warning { background-color: #fff9e6 !important; }
+    
+    .kpi-card { border-radius: 15px; border: none; transition: transform 0.2s; }
+    .kpi-card:hover { transform: translateY(-5px); }
+    
+    .table-custom th { background-color: #1e293b !important; color: white; white-space: nowrap; font-size: 0.85rem; }
+    .table-custom td { vertical-align: middle; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0"><i class="fas fa-search-dollar text-danger me-2"></i>Thanh Tra Tồn Kho SO (2 Năm)</h2>
+            <p class="text-muted mb-0">Rà soát phát hiện hàng nhập quá hạn 90 ngày hoặc xuất sai khách hàng (Cướp hàng).</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary me-2" id="btn-reload"><i class="fas fa-sync-alt me-2"></i>Làm mới</button>
+            <button class="btn btn-danger shadow-sm" id="btn-filter-errors"><i class="fas fa-exclamation-circle me-2"></i>Chỉ hiện Vi Phạm</button>
+            <button class="btn btn-primary shadow-sm d-none" id="btn-clear-filter"><i class="fas fa-list me-2"></i>Hiện tất cả</button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card kpi-card bg-primary text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase opacity-75">Tổng Line Đơn Hàng</h6>
+                    <h2 class="fw-bold mb-0" id="kpi-total">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card kpi-card bg-danger text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase opacity-75">Tồn > 90 Ngày (Chưa Xuất)</h6>
+                    <h2 class="fw-bold mb-0" id="kpi-overdue">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card kpi-card bg-dark text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase opacity-75">Xuất Sai Khách Hàng</h6>
+                    <h2 class="fw-bold mb-0" id="kpi-wrong-customer">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card kpi-card bg-warning text-dark shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase opacity-75">Nằm Kho / Xuất Chậm</h6>
+                    <h2 class="fw-bold mb-0" id="kpi-warning">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="inventoryTable" class="table table-hover table-custom w-100">
+                    <thead>
+                        <tr>
+                            <th>Tình Trạng</th>
+                            <th>Sales Phụ Trách</th>
+                            <th>Khách Hàng (SO)</th>
+                            <th>Chứng Từ SO (Loại)</th>
+                            <th>Hàng Hóa / SL Bán</th>
+                            <th>Nhập Kho (PO)</th>
+                            <th>Xuất Kho</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    let table = $('#inventoryTable').DataTable({
+        "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+        "pageLength": 25,
+        "order": [], // Không tự sắp xếp để giữ nguyên Order của SQL
+        "ajax": {
+            "url": "/api/inventory_control/data",
+            "dataSrc": function (json) {
+                // Cập nhật KPI Cards
+                let total = json.length;
+                let overdue = 0, wrongCustomer = 0, warning = 0;
+                
+                json.forEach(row => {
+                    if (row.KetQuaKiemTra.includes('🔴')) overdue++;
+                    if (row.KetQuaKiemTra.includes('🚨')) wrongCustomer++;
+                    if (row.KetQuaKiemTra.includes('🟡') || row.KetQuaKiemTra.includes('🟠')) warning++;
+                });
+
+                $('#kpi-total').text(total);
+                $('#kpi-overdue').text(overdue);
+                $('#kpi-wrong-customer').text(wrongCustomer);
+                $('#kpi-warning').text(warning);
+
+                return json;
+            }
+        },
+        "createdRow": function(row, data, dataIndex) {
+            if (data.KetQuaKiemTra.includes('🔴') || data.KetQuaKiemTra.includes('🚨')) {
+                $(row).addClass('row-danger');
+            } else if (data.KetQuaKiemTra.includes('🟠') || data.KetQuaKiemTra.includes('🟡')) {
+                $(row).addClass('row-warning');
+            }
+        },
+        "columns": [
+            { 
+                "data": "KetQuaKiemTra",
+                "render": function(data) {
+                    let badgeClass = "bg-secondary";
+                    if (data.includes('🔴') || data.includes('🚨')) badgeClass = "bg-danger";
+                    else if (data.includes('🟠') || data.includes('🟡')) badgeClass = "bg-warning text-dark";
+                    else if (data.includes('🟢')) badgeClass = "bg-success";
+                    return `<span class="status-badge ${badgeClass}">${data}</span>`;
+                }
+            },
+            { 
+                "data": "SalesManID",
+                "render": function(data) { return `<span class="fw-bold text-primary"><i class="fas fa-user-tag me-1"></i>${data}</span>`; }
+            },
+            { 
+                "data": "CustomerName",
+                "render": function(data, type, row) { return `<strong>${data || ''}</strong><br><small class="text-muted">${row.CustomerCode || ''}</small>`; }
+            },
+            { 
+                "data": "OrderNo",
+                "render": function(data, type, row) { 
+                    let dateStr = row.OrderDate ? new Date(row.OrderDate).toLocaleDateString('vi-VN') : '';
+                    return `<span class="fw-bold">${data}</span> <span class="badge bg-dark">${row.VoucherTypeID}</span><br><small><i class="far fa-calendar-alt"></i> ${dateStr}</small>`; 
+                }
+            },
+            { 
+                "data": "InventoryID",
+                "render": function(data, type, row) { return `<span class="text-primary fw-bold">${data}</span><br>SL Đặt: <span class="badge bg-info text-dark fs-6">${row.SO_Qty_Ordered}</span>`; }
+            },
+            { 
+                "data": "PO_No",
+                "render": function(data, type, row) {
+                    if (!data) return `<span class="text-muted fst-italic">Chưa có PO</span>`;
+                    let dateStr = row.Ngay_nhap ? new Date(row.Ngay_nhap).toLocaleDateString('vi-VN') : 'Chưa nhập kho';
+                    return `<strong>${data}</strong><br>Về kho: <span class="text-success fw-bold">${row.SL_nhap}</span><br><small class="text-muted">${dateStr}</small>`;
+                }
+            },
+            { 
+                "data": "SL_xuat",
+                "render": function(data, type, row) {
+                    if (!row.Ngay_xuat) return `<span class="text-muted fst-italic">Chưa xuất</span>`;
+                    let dateStr = new Date(row.Ngay_xuat).toLocaleDateString('vi-VN');
+                    return `Đã xuất: <span class="text-success fw-bold">${data}</span><br><small class="text-muted">${dateStr}</small><br><small class="fw-bold">HĐ: ${row.HoaDon || '---'}</small>`;
+                }
+            }
+        ]
+    });
+
+    // Nút làm mới
+    $('#btn-reload').click(function() { table.ajax.reload(); });
+
+    // Nút Lọc lỗi
+    $('#btn-filter-errors').click(function() {
+        // Search các dòng có icon 🔴 (Tồn > 90 ngày) hoặc 🚨 (Sai khách)
+        table.column(0).search('🔴|🚨', true, false).draw();
+        $(this).addClass('d-none');
+        $('#btn-clear-filter').removeClass('d-none');
+    });
+
+    // Nút Bỏ lọc
+    $('#btn-clear-filter').click(function() {
+        table.column(0).search('').draw();
+        $(this).addClass('d-none');
+        $('#btn-filter-errors').removeClass('d-none');
+    });
+});
+</script>
+{% endblock %}

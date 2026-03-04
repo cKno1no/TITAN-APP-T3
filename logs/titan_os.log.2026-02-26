@@ -1,0 +1,114 @@
+[2026-02-26 08:19:03,731] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 08:19:16,933] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-26 08:27:46,279] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 15:09:11,578] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 15:16:43,947] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 15:22:20,004] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 15:40:25,713] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 16:06:59,833] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 16:16:32,937] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 16:27:33,656] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:01:58,629] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:02:14,608] ERROR in db_manager:105 [KD010]: Lỗi get_data (Hybrid): (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'Avatar'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Statement(s) could not be prepared. (8180)")
+[SQL: SELECT Avatar FROM [dbo].[GD - NGUOI DUNG] WHERE LTRIM(RTRIM(USERCODE)) = ?]
+[parameters: ('KD010',)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-02-26 17:02:15,375] ERROR in app:875 [KD010]: Exception on /kpi-eval/dashboard [GET]
+Traceback (most recent call last):
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CRM STDD\utils.py", line 52, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\blueprints\kpi_evaluation_bp.py", line 94, in kpi_dashboard
+    return render_template(
+        'kpi_evaluation.html',
+    ...<9 lines>...
+        grade=grade
+    )
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\CRM STDD\templates\kpi_evaluation.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\CRM STDD\templates\base.html", line 213, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\CRM STDD\templates\kpi_evaluation.html", line 269, in block 'content'
+    <span class="text-muted small">Tỷ trọng: <b>{{ (row.Weight * 100)|int }}%</b></span>
+    
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'Weight'
+[2026-02-26 17:04:17,683] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:04:22,893] ERROR in db_manager:105 [KD010]: Lỗi get_data (Hybrid): (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'AvatarUrl'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Statement(s) could not be prepared. (8180)")
+[SQL: SELECT AvatarUrl FROM [dbo].[GD - NGUOI DUNG] WHERE LTRIM(RTRIM(USERCODE)) = ?]
+[parameters: ('KD010',)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-02-26 17:04:23,633] ERROR in app:875 [KD010]: Exception on /kpi-eval/dashboard [GET]
+Traceback (most recent call last):
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CRM STDD\utils.py", line 52, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\blueprints\kpi_evaluation_bp.py", line 97, in kpi_dashboard
+    return render_template(
+        'kpi_evaluation.html',
+    ...<9 lines>...
+        grade=grade
+    )
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\CRM STDD\templates\kpi_evaluation.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\CRM STDD\templates\base.html", line 213, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\CRM STDD\templates\kpi_evaluation.html", line 291, in block 'content'
+    Goal: {{ row.Threshold_100|round(0) }} {{ row.Unit or '' }}
+    
+  File "C:\Users\kd010.STD\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\filters.py", line 1182, in do_round
+    return round(value, precision)
+TypeError: type Undefined doesn't define __round__ method
+[2026-02-26 17:06:49,464] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:08:54,480] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:31:53,199] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:58:32,819] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 17:59:41,640] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 18:00:22,488] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 18:06:20,372] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 18:32:36,480] ERROR in db_manager:105 [KD010]: Lỗi get_data (Hybrid): This result object does not return rows. It has been closed automatically.
+[2026-02-26 18:58:46,016] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 19:00:32,064] ERROR in db_manager:105 [KD010]: Lỗi get_data (Hybrid): This result object does not return rows. It has been closed automatically.
+[2026-02-26 19:19:37,799] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 19:22:03,244] ERROR in db_manager:105 [KD010]: Lỗi get_data (Hybrid): This result object does not return rows. It has been closed automatically.
+[2026-02-26 19:28:22,796] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 19:28:43,037] ERROR in db_manager:105 [KD010]: Lỗi get_data (Hybrid): This result object does not return rows. It has been closed automatically.
+[2026-02-26 19:40:54,396] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 19:58:46,914] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 20:08:04,872] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-26 20:12:29,994] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.

@@ -1,0 +1,204 @@
+[2026-02-28 01:54:01,736] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 01:54:06,864] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-28 01:54:23,673] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:25,812] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:26,659] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:26,936] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:31,495] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:32,310] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:37,336] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:39,451] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:39,667] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:39,980] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:40,773] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:40,978] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:41,181] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:41,392] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:50,317] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:50,768] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:51,314] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:51,581] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:53,533] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:54,261] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:54,738] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:54,819] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:54,899] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:54,979] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:55,156] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:55,360] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:55,520] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:56,333] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:56,558] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:56,752] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:56,938] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:57,167] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:57,363] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:57,554] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:57,756] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:57,947] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:58,144] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:54:58,325] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:36,445] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:37,265] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:37,462] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:37,640] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:37,814] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:38,001] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:38,192] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:39,690] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:55:45,897] ERROR in task_bp:164 [KD010]: LỖI API GET LOG HISTORY: 'str' object has no attribute 'isoformat'
+[2026-02-28 01:59:24,795] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:04:25,188] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:07:21,751] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-28 02:11:35,423] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:26:34,652] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:30:35,365] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:32:50,765] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:36:57,895] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:37:02,091] ERROR in app:875 [KD010]: Exception on /task_dashboard [GET]
+Traceback (most recent call last):
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CRM STDD\utils.py", line 52, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\utils.py", line 129, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\blueprints\task_bp.py", line 94, in task_dashboard
+    return render_template(
+        'task_dashboard.html',
+    ...<3 lines>...
+        text_search_term=text_search_term
+    )
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\CRM STDD\templates\task_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\CRM STDD\templates\base.html", line 213, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\CRM STDD\templates\task_dashboard.html", line 246, in block 'content'
+    <td>{{ task.NoteCapTren|truncate(30, True) or '—' }}</td>
+    
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\jinja2\filters.py", line 911, in do_truncate
+    if len(s) <= length + leeway:
+       ~~~^^^
+TypeError: object of type 'NoneType' has no len()
+[2026-02-28 02:39:08,408] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 02:39:49,863] ERROR in task_bp:169 [KD010]: LỖI API LOG PROGRESS: TaskService.log_task_progress() got an unexpected keyword argument 'attachment_url'
+[2026-02-28 02:39:57,443] ERROR in task_bp:169 [KD010]: LỖI API LOG PROGRESS: TaskService.log_task_progress() got an unexpected keyword argument 'attachment_url'
+[2026-02-28 02:45:23,638] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 13:53:12,455] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 14:53:40,260] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 15:02:37,981] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 15:36:18,092] INFO in executive_service:26 [GD001]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-28 16:46:48,409] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-28 17:59:41,662] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 03:37:15,980] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 03:50:29,857] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 05:20:37,764] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 05:20:55,302] ERROR in app:875 [KD010]: Exception on /api/inventory_control/data [GET]
+Traceback (most recent call last):
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CRM STDD\utils.py", line 52, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\blueprints\crm_bp.py", line 153, in api_inventory_control_data
+    return jsonify(data if data else [])
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\__init__.py", line 170, in jsonify
+    return current_app.json.response(*args, **kwargs)  # type: ignore[return-value]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\provider.py", line 214, in response
+    f"{self.dumps(obj, **dump_args)}\n", mimetype=self.mimetype
+       ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\provider.py", line 179, in dumps
+    return json.dumps(obj, **kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\json\__init__.py", line 238, in dumps
+    **kw).encode(obj)
+          ~~~~~~^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\json\encoder.py", line 261, in iterencode
+    return _iterencode(o, 0)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\provider.py", line 110, in _default
+    return http_date(o)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\http.py", line 1037, in http_date
+    return email.utils.format_datetime(timestamp, usegmt=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\email\utils.py", line 275, in format_datetime
+    now = dt.timetuple()
+  File "pandas/_libs/tslibs/nattype.pyx", line 54, in pandas._libs.tslibs.nattype._make_error_func.f
+ValueError: NaTType does not support timetuple
+when serializing dict item 'Ngay_xuat'
+when serializing list item 0
+[2026-03-02 05:20:58,394] ERROR in app:875 [KD010]: Exception on /api/inventory_control/data [GET]
+Traceback (most recent call last):
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CRM STDD\utils.py", line 52, in decorated_function
+    return f(*args, **kwargs)
+  File "D:\CRM STDD\blueprints\crm_bp.py", line 153, in api_inventory_control_data
+    return jsonify(data if data else [])
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\__init__.py", line 170, in jsonify
+    return current_app.json.response(*args, **kwargs)  # type: ignore[return-value]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\provider.py", line 214, in response
+    f"{self.dumps(obj, **dump_args)}\n", mimetype=self.mimetype
+       ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\provider.py", line 179, in dumps
+    return json.dumps(obj, **kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\json\__init__.py", line 238, in dumps
+    **kw).encode(obj)
+          ~~~~~~^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\json\encoder.py", line 261, in iterencode
+    return _iterencode(o, 0)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\json\provider.py", line 110, in _default
+    return http_date(o)
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\http.py", line 1037, in http_date
+    return email.utils.format_datetime(timestamp, usegmt=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF F15\AppData\Local\Programs\Python\Python314\Lib\email\utils.py", line 275, in format_datetime
+    now = dt.timetuple()
+  File "pandas/_libs/tslibs/nattype.pyx", line 54, in pandas._libs.tslibs.nattype._make_error_func.f
+ValueError: NaTType does not support timetuple
+when serializing dict item 'Ngay_xuat'
+when serializing list item 0
+[2026-03-02 05:22:55,011] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 13:21:43,495] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 13:21:57,624] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-03-02 13:52:39,704] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 15:28:18,050] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 15:39:50,002] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 15:43:10,527] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-02 17:09:17,791] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...

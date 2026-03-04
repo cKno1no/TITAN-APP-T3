@@ -1,0 +1,17 @@
+[2026-02-27 12:11:25,885] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 12:11:43,547] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-02-27 12:30:10,698] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 12:55:11,829] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 12:59:24,402] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 13:03:12,297] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 13:03:53,117] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 14:24:24,856] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 14:41:09,363] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 14:45:56,431] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 15:00:01,126] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 15:11:50,285] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 15:12:14,786] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 15:28:00,617] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-02-27 15:28:20,915] INFO in chatbot_service:166 [KD010]: 🤖 AI Calling Tool: check_product_info | Args: {'product_keywords': '6205', 'customer_name': 'Kraft'}
+[2026-02-27 15:28:26,353] INFO in chatbot_service:166 [KD010]: 🤖 AI Calling Tool: check_product_info | Args: {'product_keywords': '6205', 'customer_name': 'VINA KRAFT'}
+[2026-02-27 15:40:19,015] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.

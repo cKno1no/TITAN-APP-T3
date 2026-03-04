@@ -1,0 +1,4 @@
+[2026-03-01 20:35:03,069] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
+[2026-03-01 20:35:10,399] INFO in executive_service:26 [KD010]: CEO Cockpit: MISS Cache -> Calculating DB...
+[2026-03-01 22:55:20,154] ERROR in db_manager:131 [KD010]: Lỗi execute_non_query: ('23000', "[23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Cannot insert the value NULL into column 'ma', table 'CRM_STDD.dbo.HD_NHAN SU LIEN HE'; column does not allow nulls. INSERT fails. (515) (SQLExecDirectW); [23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The statement has been terminated. (3621)")
+[2026-03-01 23:15:33,106] INFO in logger_setup:56 [System]: Titan OS Startup: Hệ thống Logging đã kích hoạt.
