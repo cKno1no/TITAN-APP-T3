@@ -40,7 +40,7 @@ def setup_production_logging(app):
         def filter(self, record):
             try:
                 record.user_code = session.get('user_code', 'System/Anon')
-            except:
+            except Exception:
                 record.user_code = 'System'
             return True
 

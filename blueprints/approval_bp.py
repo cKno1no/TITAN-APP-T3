@@ -85,13 +85,35 @@ def sales_order_approval_dashboard():
         date_from_str, 
         date_to_str
     )
+
+    # Funnel counts cho strip (Tổng / Tự duyệt / Chờ duyệt / Lỗi)
+    funnel_total = len(orders_for_review)
+    funnel_self = funnel_pending = funnel_fail = 0
+    for o in orders_for_review:
+        r = o.get('ApprovalResult') or {}
+        disp = (r.get('ApproverDisplay') or '')
+        reason = (r.get('Reason') or '')
+        passed = r.get('Passed')
+        approver = (r.get('ApproverRequired') or '')
+        if 'TỰ DUYỆT' in disp:
+            funnel_self += 1
+        elif passed and user_code and (user_code in approver or approver == user_code):
+            funnel_pending += 1
+        elif not passed and 'PENDING' in reason:
+            funnel_pending += 1
+        elif not passed and ('FAILED' in reason or 'Lỗi' in reason):
+            funnel_fail += 1
     
     return render_template(
         'sales_order_approval.html', 
         orders=orders_for_review,
         current_user_code=user_code,
         date_from=date_from_str,
-        date_to=date_to_str
+        date_to=date_to_str,
+        funnel_total=funnel_total,
+        funnel_self=funnel_self,
+        funnel_pending=funnel_pending,
+        funnel_fail=funnel_fail,
     )
 
 @approval_bp.route('/quick_approval', methods=['GET'])

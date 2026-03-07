@@ -1,0 +1,67 @@
+/**
+ * CEO Cockpit - Styles
+ */
+h1, h2, h3, h4, h5, h6 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+.card-box {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    height: 100%;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+.card-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+    cursor: pointer;
+}
+
+.score-label { color: var(--secondary); font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.score-value { color: var(--text-dark); font-size: 1.8rem; font-weight: 800; line-height: 1.1; margin-bottom: 8px; }
+
+.trend-badge { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; }
+.bg-trend-up { background-color: rgba(5, 205, 153, 0.15); color: var(--success); }
+.bg-trend-down { background-color: rgba(227, 26, 26, 0.1); color: var(--danger); }
+.bg-trend-warn { background-color: rgba(255, 181, 71, 0.15); color: #B71C1C; }
+
+.card-gradient { background: linear-gradient(135deg, #4318FF 0%, #7B61FF 100%); color: white !important; border: none; }
+.card-gradient .score-label { color: rgba(255,255,255,0.8) !important; }
+.card-gradient .score-value { color: white !important; }
+.card-gradient .trend-badge { background-color: rgba(255,255,255,0.2); color: white; }
+
+.icon-box { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+.ib-primary { background-color: var(--input-bg); color: var(--primary); }
+.ib-warning { background-color: rgba(255, 181, 71, 0.15); color: var(--warning); }
+.ib-danger { background-color: rgba(227, 26, 26, 0.1); color: var(--danger); }
+.ib-success { background-color: rgba(5, 205, 153, 0.15); color: var(--success); }
+.ib-info { background-color: rgba(51, 204, 255, 0.15); color: var(--info); }
+
+.table-leaderboard th { color: var(--secondary); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid var(--border-color); background: transparent; }
+.table-leaderboard td { padding: 15px 10px; vertical-align: middle; color: var(--text-dark); font-weight: 600; border-bottom: 1px solid var(--border-color); background: transparent; }
+.avatar-circle { width: 32px; height: 32px; background-color: var(--input-bg); border-radius: 50%; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; margin-right: 10px; }
+
+.chart-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 320px; color: var(--secondary); }
+.ceo-cockpit .modal-header { padding: 20px 25px; }
+.ceo-cockpit .modal-body { padding: 25px; }
+
+.skeleton-text {
+    display: inline-block; height: 1em; width: 100%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%; animation: ceo-skeleton-loading 1.5s infinite;
+    border-radius: 4px; opacity: 0.5;
+}
+@keyframes ceo-skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.chart-empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 280px; color: var(--secondary); text-align: center; padding: 2rem;
+}
+.chart-empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }

@@ -45,10 +45,30 @@
         background: var(--card-bg); 
         border-bottom: 1px solid var(--border-color); 
         padding: 15px 20px; font-weight: 700; color: var(--text-dark); 
-        font-size: 1.05rem; 
+        font-size: 1.05rem; display: flex; align-items: center; gap: 8px;
     }
-    
+    .card-header-custom .card-header-icon { font-size: 1.1rem; }
     .val-highlight { font-weight: 700; color: var(--primary); }
+    .metric-card.kpi-sales-100 { border-left: 4px solid var(--success); }
+    .metric-card.kpi-sales-70 { border-left: 4px solid var(--primary); }
+    .metric-card.kpi-sales-low { border-left: 4px solid #ea580c; }
+    .metric-card.kpi-debt-ok { border-left: 4px solid var(--warning); }
+    .metric-card.kpi-debt-overdue { border-left: 4px solid var(--danger); }
+    .metric-card.kpi-otif-90 { border-left: 4px solid var(--success); }
+    .metric-card.kpi-otif-low { border-left: 4px solid var(--warning); }
+    .table-custom thead th { position: sticky; top: 0; z-index: 5; background: var(--input-bg) !important; box-shadow: 0 1px 0 var(--border-color); }
+    .table-custom tbody tr:hover { background: var(--input-bg); }
+    .customer-hero-strip { padding: 12px 20px; margin-bottom: 20px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; font-size: 0.9rem; display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .customer-hero-strip .hero-val { font-weight: 800; }
+    .customer-hero-strip .hero-sales-100 { color: var(--success); }
+    .customer-hero-strip .hero-sales-70 { color: var(--primary); }
+    .customer-hero-strip .hero-sales-low { color: #ea580c; }
+    .customer-hero-strip .hero-debt-over { color: var(--danger); }
+    .customer-hero-mini { width: 80px; height: 6px; background: var(--border-color); border-radius: 999px; overflow: hidden; }
+    .customer-hero-mini-fill { height: 100%; border-radius: 999px; transition: width 0.4s; }
+    .drill-breadcrumb { font-size: 0.75rem; color: var(--secondary); margin-bottom: 4px; }
+    .drill-skeleton { height: 120px; background: linear-gradient(90deg, var(--input-bg) 25%, rgba(255,255,255,0.05) 50%, var(--input-bg) 75%); background-size: 200% 100%; animation: drill-skeleton 1s infinite; border-radius: 8px; }
+    @keyframes drill-skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     /* Bảo mật */
     body { -webkit-user-select: none; user-select: none; }
@@ -63,15 +83,27 @@
 {% endblock %}
 
 {% block header_actions %}
-<button class="btn btn-sm btn-primary shadow-sm" onclick="location.reload()">
+<button type="button" class="btn btn-sm btn-primary shadow-sm" id="btnRefreshProfile" onclick="refreshCustomerProfile()">
     <i class="fas fa-sync-alt me-2"></i> Cập nhật
 </button>
-<a href="/sales/profit_analysis" class="btn btn-sm btn-light border shadow-sm">
+<a href="/sales/profit_analysis" class="btn btn-sm btn-light border shadow-sm" title="Về Phân tích lợi nhuận">
     <i class="fas fa-arrow-left me-2"></i> Quay lại
 </a>
 {% endblock %}
 
 {% block content %}
+    <div class="customer-hero-strip" id="customerHeroStrip">
+        <span>Doanh số YTD: <span class="hero-val" id="heroSales">...</span></span>
+        <span>(<span class="hero-val" id="heroSalesPct">...</span> mục tiêu)</span>
+        <span class="text-muted">·</span>
+        <span>Công nợ: <span class="hero-val" id="heroDebt">...</span></span>
+        <span class="text-muted">·</span>
+        <span>OTIF: <span class="hero-val" id="heroOtif">...</span></span>
+        <div class="customer-hero-mini ms-2">
+            <div class="customer-hero-mini-fill" id="heroMiniBar" style="width: 0%; background: var(--primary);"></div>
+        </div>
+    </div>
+
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="card metric-card h-100 p-3">
@@ -110,23 +142,22 @@
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card metric-card h-100 p-3">
+            <div class="card metric-card h-100 p-3" id="cardKpiSales">
                 <div class="d-flex justify-content-between">
                     <div>
                         <div class="metric-label mb-1">Doanh số YTD / Mục tiêu</div>
-                        <div class="metric-value" style="color: var(--primary);" id="kpiSales">...</div>
+                        <div class="metric-value" id="kpiSales">...</div>
                         <div class="metric-sub mt-1" id="kpiTarget">Target: ...</div>
                     </div>
                     <div class="icon-box ib-primary"><i class="fas fa-chart-pie"></i></div>
                 </div>
                 <div class="progress mt-3" style="height: 6px; background-color: var(--input-bg);">
-                    <div class="progress-bar bg-primary" id="progSales" style="width: 0%"></div>
+                    <div class="progress-bar" id="progSales" style="width: 0%"></div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-4">
-            <div class="card metric-card h-100 p-3">
+            <div class="card metric-card h-100 p-3" id="cardKpiDebt">
                 <div class="d-flex justify-content-between">
                     <div>
                         <div class="metric-label mb-1">Công nợ Hiện tại / Quá hạn</div>
@@ -140,9 +171,8 @@
                 </div>
             </div>
         </div>
-
         <div class="col-md-4">
-            <div class="card metric-card h-100 p-3">
+            <div class="card metric-card h-100 p-3" id="cardKpiOtif">
                 <div class="d-flex justify-content-between">
                     <div>
                         <div class="metric-label mb-1">Giao hàng đúng hạn (OTIF)</div>
@@ -161,7 +191,7 @@
     <div class="row g-3 mb-4">
         <div class="col-lg-8">
             <div class="card metric-card h-100 p-0">
-                <div class="card-header-custom">Xu hướng & Cơ cấu Doanh số (5 Năm)</div>
+                <div class="card-header-custom"><i class="fas fa-chart-bar card-header-icon text-primary"></i> Xu hướng & Cơ cấu Doanh số (5 Năm)</div>
                 <div class="card-body">
                     <div id="structureChart"></div>
                 </div>
@@ -169,7 +199,7 @@
         </div>
         <div class="col-lg-4">
             <div class="card metric-card h-100 p-0">
-                <div class="card-header-custom">Cơ cấu Nhóm hàng (YTD)</div>
+                <div class="card-header-custom"><i class="fas fa-chart-pie card-header-icon text-warning"></i> Cơ cấu Nhóm hàng (YTD)</div>
                 <div class="card-body">
                     <div id="categoryChart"></div>
                     <div class="text-center small text-muted mt-2">Click vào biểu đồ để xem Top 20 mã hàng</div>
@@ -181,8 +211,9 @@
     <div class="row g-3 mb-4">
         <div class="col-lg-6">
             <div class="card metric-card h-100 p-0">
-                <div class="card-header-custom d-flex justify-content-between">
-                    <span><i class="fas fa-trophy text-warning me-2"></i>Top 30 Sản phẩm bán chạy (2 Năm)</span>
+                <div class="card-header-custom">
+                    <i class="fas fa-trophy card-header-icon text-warning"></i>
+                    <span>Top 30 Sản phẩm bán chạy (2 Năm)</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive" style="max-height: 450px;">
@@ -205,8 +236,9 @@
 
         <div class="col-lg-6">
             <div class="card metric-card h-100 p-0">
-                <div class="card-header-custom d-flex justify-content-between">
-                    <span><i class="fas fa-search-dollar text-danger me-2"></i>Cơ hội bỏ lỡ (Báo giá chưa chốt - 5 Năm)</span>
+                <div class="card-header-custom">
+                    <i class="fas fa-search-dollar card-header-icon text-danger"></i>
+                    <span>Cơ hội bỏ lỡ (Báo giá chưa chốt - 5 Năm)</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive" style="max-height: 450px;">
@@ -230,7 +262,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card metric-card p-0">
-                <div class="card-header-custom">Phân tích Giá bán thực tế vs Giá quy định (Top 50 Mã)</div>
+                <div class="card-header-custom"><i class="fas fa-balance-scale card-header-icon text-info"></i> Phân tích Giá bán thực tế vs Giá quy định (Top 50 Mã)</div>
                 <div class="card-body">
                     <div id="priceChart"></div>
                 </div>
@@ -238,15 +270,19 @@
         </div>
     </div>
 
-    <div class="modal fade" id="drillDownModal" tabindex="-1">
+    <div class="modal fade" id="drillDownModal" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content" style="background: var(--card-bg);">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="drillModalTitle" style="color: var(--text-dark);">Chi tiết</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div>
+                        <div class="drill-breadcrumb" id="drillBreadcrumb">Customer 360 &gt; <span id="drillBreadcrumbCustomer">{{ customer.ShortObjectName }}</span></div>
+                        <h5 class="modal-title fw-bold" id="drillModalTitle" style="color: var(--text-dark);">Chi tiết</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="table-responsive">
+                    <div id="drillSkeleton" class="drill-skeleton mb-3" style="display: none;"></div>
+                    <div class="table-responsive" id="drillTableWrap">
                         <table class="table table-custom table-hover small" id="drillTable">
                             <thead><tr><th>Mã hàng</th><th>Tên hàng</th><th class="text-end">SL</th><th class="text-end">Giá trị</th></tr></thead>
                             <tbody></tbody>
@@ -285,19 +321,63 @@
         return new Intl.NumberFormat('en-US').format(num);
     }
 
-    // INIT PAGE
+    function applyKpiStyles() {
+        const pctSales = metrics.TargetYear > 0 ? (metrics.SalesYTD / metrics.TargetYear * 100) : 0;
+        const cardSales = document.getElementById('cardKpiSales');
+        const progSales = document.getElementById('progSales');
+        if (cardSales) {
+            cardSales.classList.remove('kpi-sales-100', 'kpi-sales-70', 'kpi-sales-low');
+            if (pctSales >= 100) { cardSales.classList.add('kpi-sales-100'); progSales.className = 'progress-bar bg-success'; }
+            else if (pctSales >= 70) { cardSales.classList.add('kpi-sales-70'); progSales.className = 'progress-bar bg-primary'; }
+            else { cardSales.classList.add('kpi-sales-low'); progSales.className = 'progress-bar'; progSales.style.backgroundColor = '#ea580c'; }
+        }
+        const cardDebt = document.getElementById('cardKpiDebt');
+        if (cardDebt) {
+            cardDebt.classList.remove('kpi-debt-ok', 'kpi-debt-overdue');
+            cardDebt.classList.add(metrics.DebtOverdue > 0 ? 'kpi-debt-overdue' : 'kpi-debt-ok');
+        }
+        const cardOtif = document.getElementById('cardKpiOtif');
+        if (cardOtif) {
+            cardOtif.classList.remove('kpi-otif-90', 'kpi-otif-low');
+            cardOtif.classList.add(metrics.OTIF >= 90 ? 'kpi-otif-90' : 'kpi-otif-low');
+        }
+    }
+
+    function refreshCustomerProfile() {
+        var btn = document.getElementById('btnRefreshProfile');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang tải...';
+        }
+        var url = window.location.pathname + window.location.search + (window.location.search ? '&' : '?') + 'refreshed=1';
+        window.location.href = url;
+    }
+
     $(document).ready(function() {
         $('#kpiSales').text(formatCurrencyTr(metrics.SalesYTD));
-        $('#kpiTarget').text(`Target: ${formatCurrencyTr(metrics.TargetYear)}`);
+        $('#kpiTarget').text('Target: ' + formatCurrencyTr(metrics.TargetYear));
         const pctSales = metrics.TargetYear > 0 ? (metrics.SalesYTD / metrics.TargetYear * 100) : 0;
         $('#progSales').css('width', Math.min(pctSales, 100) + '%');
 
         $('#kpiDebt').text(formatCurrencyTr(metrics.DebtCurrent));
-        $('#kpiOverdue').text(`Quá hạn: ${formatCurrencyTr(metrics.DebtOverdue)}`);
+        $('#kpiOverdue').text('Quá hạn: ' + formatCurrencyTr(metrics.DebtOverdue));
         const pctDebt = metrics.DebtCurrent > 0 ? (metrics.DebtOverdue / metrics.DebtCurrent * 100) : 0;
         $('#progDebt').css('width', Math.min(pctDebt, 100) + '%');
 
-        $('#kpiOtif').text(`${metrics.OTIF}%`);
+        $('#kpiOtif').text(metrics.OTIF + '%');
+
+        applyKpiStyles();
+
+        $('#heroSales').text(formatCurrencyTr(metrics.SalesYTD));
+        $('#heroSalesPct').text(pctSales.toFixed(1) + '%').addClass(pctSales >= 100 ? 'hero-sales-100' : pctSales >= 70 ? 'hero-sales-70' : 'hero-sales-low');
+        $('#heroDebt').text(formatCurrencyTr(metrics.DebtCurrent)).addClass(metrics.DebtOverdue > 0 ? 'hero-debt-over' : '');
+        $('#heroOtif').text(metrics.OTIF + '%');
+        $('#heroMiniBar').css({ width: Math.min(pctSales, 100) + '%', background: pctSales >= 100 ? 'var(--success)' : pctSales >= 70 ? 'var(--primary)' : '#ea580c' });
+
+        if (window.location.search.indexOf('refreshed=1') !== -1) {
+            if (typeof Swal !== 'undefined') Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã làm mới dữ liệu', showConfirmButton: false, timer: 2000 });
+            if (window.history.replaceState) window.history.replaceState({}, '', window.location.pathname);
+        }
     });
 
     // LOAD CHARTS
@@ -414,19 +494,29 @@
 
     function openDrillDown(type, value, title) {
         $('#drillModalTitle').text(title);
-        $('#drillTable tbody').html('<tr><td colspan="4" class="text-center">Đang tải...</td></tr>');
+        $('#drillBreadcrumb').html('Customer 360 &gt; ' + ($('#drillBreadcrumbCustomer').text() || '') + ' &gt; ' + title);
+        $('#drillTableWrap').hide();
+        $('#drillSkeleton').show();
         drillModal.show();
         fetch('/api/customer_360/drilldown', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ object_id: objectId, drill_type: type, filter_value: value })
         }).then(r => r.json()).then(res => {
+            $('#drillSkeleton').hide();
+            $('#drillTableWrap').show();
             if(res.success) {
                 let html = '';
-                res.data.forEach(row => {
-                    html += `<tr><td>${row.Col1}</td><td>${row.Col2}</td><td>${row.Col3}</td><td class="text-end fw-bold">${formatNumber(row.Value)}</td></tr>`;
+                (res.data || []).forEach(row => {
+                    html += '<tr><td>' + (row.Col1 || '') + '</td><td>' + (row.Col2 || '') + '</td><td>' + (row.Col3 || '') + '</td><td class="text-end fw-bold">' + formatNumber(row.Value) + '</td></tr>';
                 });
                 $('#drillTable tbody').html(html || '<tr><td colspan="4" class="text-center">Không có dữ liệu</td></tr>');
+            } else {
+                $('#drillTable tbody').html('<tr><td colspan="4" class="text-center text-muted">Không có dữ liệu</td></tr>');
             }
+        }).catch(function() {
+            $('#drillSkeleton').hide();
+            $('#drillTableWrap').show();
+            $('#drillTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Lỗi tải dữ liệu</td></tr>');
         });
     }
 

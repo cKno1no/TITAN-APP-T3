@@ -17,15 +17,30 @@ def get_user_ip():
     else:
        return request.remote_addr
 
+# Giới hạn file đính kèm: 10MB/file, 30MB tổng
+MAX_BUDGET_FILE_SIZE = 10 * 1024 * 1024   # 10MB
+MAX_BUDGET_TOTAL_SIZE = 30 * 1024 * 1024  # 30MB
+
 def save_budget_files(files):
     if not files: return None
     saved_filenames = []
     upload_path = config.UPLOAD_FOLDER_PATH
     if not os.path.exists(upload_path): os.makedirs(upload_path)
     
+    total_size = 0
     now_str = datetime.now().strftime("%Y%m%d%H%M%S")
     for file in files:
         if file and file.filename:
+            file.seek(0, 2)
+            size = file.tell()
+            file.seek(0)
+            if size > MAX_BUDGET_FILE_SIZE:
+                current_app.logger.warning(f"Budget upload: file {file.filename} vượt {MAX_BUDGET_FILE_SIZE // (1024*1024)}MB, bỏ qua.")
+                continue
+            if total_size + size > MAX_BUDGET_TOTAL_SIZE:
+                current_app.logger.warning(f"Budget upload: tổng dung lượng vượt giới hạn, bỏ qua file {file.filename}.")
+                continue
+            total_size += size
             filename = secure_filename(file.filename)
             unique_filename = f"BUD_{now_str}_{filename}"
             try:
@@ -157,8 +172,19 @@ def api_submit_request():
     reason = request.form.get('reason')
     object_id = request.form.get('object_id')
     
-    # Xử lý File
+    # Xử lý File: kiểm tra giới hạn trước khi lưu
     files = request.files.getlist('attachments')
+    total_size = 0
+    for f in files:
+        if f and f.filename:
+            f.seek(0, 2)
+            sz = f.tell()
+            f.seek(0)
+            if sz > MAX_BUDGET_FILE_SIZE:
+                return jsonify({'success': False, 'message': f'File "{f.filename}" vượt quá 10MB. Vui lòng chọn file nhỏ hơn.'})
+            total_size += sz
+    if total_size > MAX_BUDGET_TOTAL_SIZE:
+        return jsonify({'success': False, 'message': 'Tổng dung lượng đính kèm vượt quá 30MB. Vui lòng giảm số file hoặc dung lượng.'})
     attachments_str = save_budget_files(files)
     
     result = budget_service.create_expense_request(
@@ -387,7 +413,8 @@ def budget_ytd_report():
             details=f"Xem báo cáo ngân sách YTD",
             ip_address=get_user_ip()
         )
-    except: pass
+    except Exception:
+        pass
     # Lấy dữ liệu (đã được gom nhóm theo ReportGroup và chỉ trả về 1 dòng cho mỗi Group từ service)
     report_data = budget_service.get_ytd_budget_report(dept_filter, year_filter)
     

@@ -350,7 +350,7 @@ class DeliveryService:
                 val = row.get('ItemCount')
                 # Chuyển về float trước rồi mới int để xử lý trường hợp 1.0
                 row['ItemCount'] = int(float(val)) if val is not None else 0
-            except:
+            except Exception:
                 row['ItemCount'] = 0
             
         current_app.logger.info(f"--- DEBUG: Lấy được {len(data)} dòng")

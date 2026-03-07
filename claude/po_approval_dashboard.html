@@ -1,0 +1,1125 @@
+{% extends "base.html" %}
+
+{% block title %}Duyệt Đơn Mua Hàng (PO/DPO) | Titan OS{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── TABLE ── */
+.table-container {
+    max-height: 78vh; overflow-y: auto;
+    border: 1px solid var(--border-color); border-radius: 0 0 12px 12px;
+}
+.table-approval th {
+    position: sticky; top: 0; z-index: 10;
+    background-color: var(--input-bg) !important;
+    color: var(--secondary) !important;
+    font-weight: 700; font-size: 0.8rem; text-transform: uppercase;
+    padding: 11px 12px; border-bottom: 2px solid var(--border-color);
+    white-space: nowrap; text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.table-approval td {
+    vertical-align: middle; font-size: 0.86rem;
+    border-bottom: 1px solid var(--border-color);
+    padding: 9px 12px; color: var(--text-dark);
+}
+.po-row { transition: background-color 0.2s; cursor: pointer; }
+.po-row:hover td { background-color: var(--input-bg) !important; }
+.po-row.selected td { background-color: rgba(67,24,255,0.05) !important; }
+
+/* Left border status */
+.status-border  { border-left: 5px solid transparent; }
+.status-ok      { border-left-color: var(--success); }
+.status-warn    { border-left-color: var(--warning); }
+.status-block   { border-left-color: var(--danger); }
+.status-pending { border-left-color: #adb5bd; }
+
+/* ── BADGE VOUCHER TYPE ── */
+.badge-po  { background: #fff3cd; color: #856404; font-weight: 700; border: 1px solid #ffe69c; }
+.badge-dpo { background: #cfe2ff; color: #0a4a8f; font-weight: 700; border: 1px solid #9ec5fe; }
+
+/* ── RISK BADGE ── */
+.risk-safe { background: #d1fae5; color: #065f46; }
+.risk-warn { background: #fef9c3; color: #854d0e; }
+.risk-high { background: #ffedd5; color: #9a3412; }
+.risk-crit { background: #fee2e2; color: #991b1b; }
+.risk-none { background: var(--input-bg); color: var(--secondary); }
+
+/* ── LAYER BADGES ── */
+.layer-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.72rem; font-weight: 600; padding: 2px 7px;
+    border-radius: 4px; white-space: nowrap;
+}
+.layer-block { background: #fee2e2; color: #991b1b; }
+.layer-warn  { background: #fef9c3; color: #854d0e; }
+.layer-ok    { background: #d1fae5; color: #065f46; }
+.layer-na    { background: var(--input-bg); color: var(--secondary); }
+
+/* ── HTMX ── */
+.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+.htmx-request .htmx-indicator { opacity: 1; }
+.htmx-request.htmx-indicator { opacity: 1; }
+
+/* ── MODAL ── */
+#approvalModal .modal-dialog { max-width: 860px; }
+
+/* Risk Score panel inside modal */
+.risk-panel {
+    background: #1a1510; color: #f5f0e8;
+    border-radius: 8px; padding: 18px 20px;
+    margin-bottom: 20px;
+}
+.risk-panel-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 14px; padding-bottom: 12px;
+    border-bottom: 1px solid rgba(245,240,232,0.1);
+}
+.risk-panel-title {
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: rgba(245,240,232,0.5);
+}
+.risk-score-display {
+    font-family: 'Courier New', monospace;
+    font-size: 2rem; font-weight: 900; line-height: 1;
+}
+.risk-flag-row {
+    display: grid;
+    grid-template-columns: 90px 130px 100px 55px 45px 55px 55px 55px 45px 1fr;
+    gap: 8px; align-items: start;
+    padding: 7px 10px; border-radius: 4px;
+    margin-bottom: 5px; font-size: 0.75rem;
+    border-left: 3px solid;
+}
+.rfl-safe { background: rgba(144,200,160,0.08); border-color: #90c8a0; }
+.rfl-warn { background: rgba(232,208,144,0.08); border-color: #e8d090; }
+.rfl-high { background: rgba(232,168,112,0.1);  border-color: #e8a870; }
+.rfl-crit { background: rgba(232,160,160,0.12); border-color: #e8a0a0; }
+.rfl-id   { font-family: 'Courier New', monospace; font-weight: 700; font-size: 0.7rem; color: #a0b8d8; }
+.rfl-mon  { font-family: 'Courier New', monospace; font-size: 0.7rem; }
+.rfl-wt   { font-family: 'Courier New', monospace; font-size: 0.67rem; color: rgba(245,240,232,0.35); }
+.rfl-pts  { font-family: 'Courier New', monospace; font-weight: 700; text-align: right; }
+.rfl-pts  { font-family: 'Courier New', monospace; font-size: 0.7rem; text-align: right; }
+.rfl-rsn  { font-size: 0.7rem; color: rgba(245,240,232,0.55); line-height: 1.4; }
+
+/* Layer check results in modal */
+.check-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 12px; border-radius: 6px;
+    margin-bottom: 6px; font-size: 0.8rem;
+    border: 1px solid;
+}
+.check-ok    { background: #f0fdf4; border-color: #bbf7d0; }
+.check-warn  { background: #fefce8; border-color: #fef08a; }
+.check-block { background: #fef2f2; border-color: #fecaca; }
+.check-icon  { font-size: 0.9rem; flex-shrink: 0; margin-top: 1px; }
+.check-body  { flex: 1; }
+.check-title { font-weight: 700; margin-bottom: 2px; }
+.check-detail{ font-size: 0.75rem; color: #6b7280; }
+
+/* Violation table */
+.tbl-violation th { font-size: 0.75rem; background: var(--input-bg) !important; padding: 8px 10px; }
+.tbl-violation td { font-size: 0.82rem; padding: 8px 10px; vertical-align: middle; }
+
+/* Confirm section */
+.confirm-section { background: var(--input-bg); border-radius: 8px; padding: 16px; }
+.confirm-label   { font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* Stat cards */
+.stat-chip {
+    display: inline-flex; flex-direction: column; align-items: center;
+    padding: 10px 16px; border-radius: 8px;
+    background: var(--input-bg); border: 1px solid var(--border-color);
+    min-width: 90px;
+}
+.stat-chip .num { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+.stat-chip .lbl { font-size: 0.68rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+
+@keyframes highlightFade { 0% { background-color: rgba(5,205,153,0.2); } 100% { background-color: transparent; } }
+.bg-highlight { animation: highlightFade 2s forwards; }
+</style>
+{% endblock %}
+
+{% block page_title %}<i class="fas fa-shopping-cart me-2 text-warning"></i> PHÊ DUYỆT ĐƠN MUA HÀNG{% endblock %}
+{% block page_sub %}PO (kế thừa DDH) · DPO (dự phòng) · 5 tầng kiểm tra tự động{% endblock %}
+
+{% block header_actions %}
+<a href="/" class="btn btn-back"><i class="fas fa-home me-2"></i>Portal</a>
+<a href="{{ url_for('approval_bp.sales_order_approval_dashboard') }}" class="btn btn-outline-secondary shadow-sm fw-bold">
+    <i class="fas fa-shipping-fast me-2"></i>Duyệt DHB
+</a>
+{% endblock %}
+
+{% block content %}
+<div x-data="poApproval()" x-init="init()">
+
+    {# ── BỘ LỌC ── #}
+    <div class="main-card mb-4">
+        <div class="card-body-custom" style="padding:18px 20px;">
+            <form hx-post="{{ url_for('po_approval_bp.po_approval_dashboard') }}"
+                  hx-target="#po-table-container"
+                  hx-select="#po-table-container"
+                  hx-swap="outerHTML"
+                  class="row g-3 align-items-end">
+
+                <div class="col-md-2">
+                    <label class="form-label text-secondary small fw-bold">Từ Ngày</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-secondary small fw-bold">Đến Ngày</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+
+                {# Filter VoucherType #}
+                <div class="col-md-2">
+                    <label class="form-label text-secondary small fw-bold">Loại</label>
+                    <select name="voucher_type" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="PO"  {% if voucher_type_filter=='PO'  %}selected{% endif %}>PO</option>
+                        <option value="DPO" {% if voucher_type_filter=='DPO' %}selected{% endif %}>DPO</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                        <i class="fas fa-filter me-2"></i>Lọc
+                        <span class="htmx-indicator spinner-border spinner-border-sm ms-2"></span>
+                    </button>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text border-0 bg-transparent ps-3" style="position:absolute;z-index:10"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control ps-5"
+                               placeholder="Tìm mã PO, NCC, NVKD..."
+                               hx-post="{{ url_for('po_approval_bp.po_approval_dashboard') }}"
+                               hx-trigger="keyup changed delay:500ms"
+                               hx-target="#po-table-container"
+                               hx-select="#po-table-container"
+                               hx-swap="outerHTML"
+                               hx-include="[name='date_from'],[name='date_to'],[name='voucher_type']">
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    {# ── STAT CHIPS ── #}
+    <div class="d-flex gap-3 mb-3 flex-wrap">
+        <div class="stat-chip">
+            <div class="num text-primary" data-stat="total">{{ orders | length }}</div>
+            <div class="lbl">Tổng PO</div>
+        </div>
+        <div class="stat-chip">
+            <div class="num text-warning">{{ orders | selectattr('VoucherTypeID','eq','DPO') | list | length }}</div>
+            <div class="lbl">DPO</div>
+        </div>
+        <div class="stat-chip">
+            <div class="num text-danger">{{ orders | selectattr('CheckResult.HasBlock','equalto',true) | list | length }}</div>
+            <div class="lbl">Bị chặn</div>
+        </div>
+        <div class="stat-chip">
+            <div class="num text-success">{{ orders | selectattr('CheckResult.CanSelfApprove','equalto',true) | list | length }}</div>
+            <div class="lbl">Tự duyệt</div>
+        </div>
+        <div class="stat-chip">
+            <div class="num" style="color:#e8a870">{{ orders | selectattr('CheckResult.RiskVerdict','in',['HIGH','CRITICAL']) | list | length }}</div>
+            <div class="lbl">Risk cao</div>
+        </div>
+    </div>
+
+    {# ── TABLE ── #}
+    <div class="main-card">
+        <div class="card-header-custom d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-list-ul me-2 text-warning"></i> DANH SÁCH PO / DPO CHỜ DUYỆT ({{ orders | length }})</span>
+            <small class="text-muted">DPO luôn cần Manager · PO Score ≥ 80 cần GM</small>
+        </div>
+
+        <div id="po-table-container" class="card-body-custom p-0" style="padding-top:0 !important">
+            <div class="table-container" style="border-radius:0 0 12px 12px; border:none">
+                <table class="table table-hover table-approval mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:55px">Risk</th>
+                            <th style="width:45px">Loại</th>
+                            <th>Mã PO</th>
+                            <th style="width:95px">Ngày</th>
+                            <th class="text-start">Nhà cung cấp</th>
+                            <th style="width:120px">NVKD</th>
+                            <th style="width:130px;text-align:right">Tổng GT</th>
+                            <th class="text-start">Kết quả kiểm tra</th>
+                            <th style="width:80px;text-align:center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        {% set cr = order.CheckResult %}
+                        {# Determine left border class #}
+                        {% if cr.HasBlock %}
+                            {% set row_cls = 'status-block' %}
+                        {% elif cr.NeedsOverride or cr.RiskVerdict in ['HIGH','CRITICAL'] %}
+                            {% set row_cls = 'status-warn' %}
+                        {% elif cr.CanSelfApprove or cr.CanManagerApprove %}
+                            {% set row_cls = 'status-ok' %}
+                        {% else %}
+                            {% set row_cls = 'status-pending' %}
+                        {% endif %}
+
+                        <tr class="po-row status-border {{ row_cls }}"
+                            data-porder="{{ order.POrderID }}"
+                            data-order='{{ order | tojson }}'
+                            :class="{ selected: selectedPOrderId === '{{ order.POrderID }}' }"
+                            @click="openModal(JSON.parse($el.dataset.order))">
+
+                            {# Risk badge #}
+                            <td class="text-center">
+                                {% set rv = cr.RiskVerdict | default('SAFE') %}
+                                {% set rs = cr.RiskScore | default(0) %}
+                                {% if rv == 'CRITICAL' %}
+                                    <span class="badge risk-crit"><i class="fas fa-skull-crossbones me-1"></i>{{ '%.0f'|format(rs) }}</span>
+                                {% elif rv == 'HIGH' %}
+                                    <span class="badge risk-high"><i class="fas fa-exclamation-triangle me-1"></i>{{ '%.0f'|format(rs) }}</span>
+                                {% elif rv == 'WARN' %}
+                                    <span class="badge risk-warn"><i class="fas fa-exclamation me-1"></i>{{ '%.0f'|format(rs) }}</span>
+                                {% else %}
+                                    {# SAFE hoặc rỗng — luôn hiện badge xanh với điểm #}
+                                    <span class="badge risk-safe"><i class="fas fa-check me-1"></i>{{ '%.0f'|format(rs) }}</span>
+                                {% endif %}
+                            </td>
+
+                            {# Voucher type #}
+                            <td class="text-center">
+                                {% if order.VoucherTypeID == 'DPO' %}
+                                    <span class="badge badge-dpo">DPO</span>
+                                {% else %}
+                                    <span class="badge badge-po">PO</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="fw-bold text-primary font-monospace small">{{ order.VoucherNo }}</td>
+                            <td class="text-center small text-muted">{{ order.OrderDate | format_date }}</td>
+
+                            <td class="text-start text-truncate" style="max-width:220px" title="{{ order.SupplierName }}">
+                                {{ order.SupplierName | default('N/A') }}
+                            </td>
+
+                            <td class="text-center small">{{ order.EmployeeName | default(order.EmployeeID) }}</td>
+
+                            <td class="text-end fw-bold">{{ order.TotalPOValue | format_tr }}</td>
+
+                            {# Check result summary #}
+                            <td class="text-start small">
+                                {% if cr.HasBlock %}
+                                    <span class="text-danger fw-bold">
+                                        <i class="fas fa-ban me-1"></i>{{ cr.BlockReason }}
+                                    </span>
+                                {% elif cr.Tier2PriceFlag %}
+                                    <span class="text-warning fw-semibold">
+                                        <i class="fas fa-tag me-1"></i>Giá vượt {{ cr.PriceFlagCount }} dòng · Risk {{ cr.RiskVerdict }}
+                                    </span>
+                                {% elif cr.RiskVerdict in ['HIGH','CRITICAL'] %}
+                                    <span style="color:#c2410c">
+                                        <i class="fas fa-chart-line me-1"></i>Risk {{ cr.RiskVerdict }} · Score {{ '%.1f'|format(cr.RiskScore) }}
+                                    </span>
+                                {% elif cr.CanSelfApprove %}
+                                    <span class="text-success">
+                                        <i class="fas fa-check-circle me-1"></i>Hợp lệ — NV có thể tự duyệt
+                                    </span>
+                                {% else %}
+                                    <span class="text-info">
+                                        <i class="fas fa-user-check me-1"></i>Chờ Manager / GM phán quyết
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            {# Action button #}
+                            <td class="text-center">
+                                {% if cr.HasBlock %}
+                                    <span class="badge bg-danger text-white">Bị chặn</span>
+                                {% elif is_admin or cr.CanSelfApprove or cr.CanManagerApprove or cr.RequiresGM %}
+                                    {# ADMIN luôn thấy nút — NV thường chỉ thấy khi được phép #}
+                                    {% if cr.CanSelfApprove and order.VoucherTypeID == 'PO' and session.user_code == order.EmployeeID and not is_admin %}
+                                        <button class="btn btn-success btn-sm px-2 py-1"
+                                                style="font-size:0.78rem;white-space:nowrap"
+                                                data-order='{{ order | tojson }}'
+                                                @click.stop="openModal(JSON.parse($el.dataset.order))">
+                                            <i class="fas fa-check"></i> Duyệt
+                                        </button>
+                                    {% elif cr.RequiresGM and not is_admin %}
+                                        <span class="badge bg-dark text-white" style="font-size:0.72rem">Cần GM</span>
+                                    {% else %}
+                                        <button class="btn btn-outline-primary btn-sm px-2 py-1"
+                                                style="font-size:0.78rem;white-space:nowrap"
+                                                data-order='{{ order | tojson }}'
+                                                @click.stop="openModal(JSON.parse($el.dataset.order))">
+                                            <i class="fas fa-eye"></i> Xem
+                                        </button>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary text-white">Chờ duyệt</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="9" class="text-center text-muted py-5">
+                            <i class="fas fa-inbox fa-2x mb-3 d-block"></i>
+                            Không có PO/DPO nào chờ duyệt trong khoảng thời gian này.
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    {# ════════════════════════════════════════════════
+       APPROVAL MODAL
+    ════════════════════════════════════════════════ #}
+    <div class="modal fade" id="approvalModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable" style="max-width:860px">
+            <div class="modal-content">
+
+                {# Header #}
+                <div class="modal-header" :style="currentOrder && currentOrder.VoucherTypeID === 'DPO'
+                        ? 'border-top: 4px solid #0a4a8f'
+                        : 'border-top: 4px solid #856404'">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">
+                            <span x-text="currentOrder ? currentOrder.VoucherNo : ''"></span>
+                            <span class="badge ms-2"
+                                  :class="currentOrder && currentOrder.VoucherTypeID === 'DPO' ? 'badge-dpo' : 'badge-po'"
+                                  x-text="currentOrder ? currentOrder.VoucherTypeID : ''"></span>
+                        </h5>
+                        <small class="text-muted">
+                            NCC: <span x-text="currentOrder ? currentOrder.SupplierName : ''"></span> &nbsp;·&nbsp;
+                            NVKD: <span x-text="currentOrder ? currentOrder.EmployeeName : ''"></span> &nbsp;·&nbsp;
+                            GT: <strong x-text="currentOrder ? formatMoney(currentOrder.TotalPOValue) : ''"></strong>
+                        </small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body" x-show="!modalLoading">
+
+                    {# ── Tab Bar ── #}
+                    <ul class="nav nav-tabs mb-3" style="border-bottom: 2px solid #e5e7eb;">
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold"
+                               :class="activeTab === 'check' ? 'active' : ''"
+                               href="#" @click.prevent="switchTab('check')">
+                                <i class="fas fa-shield-alt me-1"></i> Kiểm tra & Duyệt
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold"
+                               :class="activeTab === 'detail' ? 'active' : ''"
+                               href="#" @click.prevent="switchTab('detail')">
+                                <i class="fas fa-list-ul me-1"></i> Chi tiết dòng hàng
+                                <span class="badge bg-secondary ms-1" x-text="currentOrder ? currentOrder.LineCount : ''"></span>
+                            </a>
+                        </li>
+                        {% if is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold text-danger"
+                               :class="activeTab === 'debug' ? 'active' : ''"
+                               href="#" @click.prevent="switchTab('debug')">
+                                <i class="fas fa-bug me-1"></i> Risk Debug
+                                <span class="badge bg-danger ms-1">Admin</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+
+                    {# ══════════════════════════════════
+                       TAB 1: KIỂM TRA & DUYỆT (cũ)
+                    ══════════════════════════════════ #}
+                    <div x-show="activeTab === 'check'">
+                    <div class="mb-3">
+                        <div class="fw-bold small text-uppercase text-muted mb-2" style="letter-spacing:.1em">
+                            <i class="fas fa-shield-alt me-1"></i> Tầng 1 — Kiểm tra dữ liệu
+                        </div>
+                        <template x-for="(chk, idx) in (checkResult ? checkResult.tier1_checks : [])" :key="idx">
+                            <div class="check-row"
+                                 :class="chk.passed ? 'check-ok' : 'check-block'">
+                                <div class="check-icon" x-text="chk.passed ? '✓' : '✗'"></div>
+                                <div class="check-body">
+                                    <div class="check-title" x-text="chk.label"></div>
+                                    <div class="check-detail" x-text="chk.detail" x-show="chk.detail"></div>
+                                    {# Violation lines table #}
+                                    <div x-show="!chk.passed && chk.lines && chk.lines.length > 0" class="mt-2">
+                                        <table class="table table-sm table-bordered tbl-violation mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã hàng</th>
+                                                    <th class="text-end">SL PO</th>
+                                                    <th class="text-end">SL DHB</th>
+                                                    <th>ShipDate PO</th>
+                                                    <th>Date01 KH</th>
+                                                    <th>Vi phạm</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(ln, li) in chk.lines" :key="li">
+                                                    <tr>
+                                                        <td class="font-monospace small" x-text="ln.InventoryID"></td>
+                                                        <td class="text-end" x-text="formatNum(ln.PO_Qty)"></td>
+                                                        <td class="text-end" x-text="formatNum(ln.DHB_Qty)"></td>
+                                                        <td class="text-center small" x-text="ln.PO_ShipDate || '—'"></td>
+                                                        <td class="text-center small" x-text="ln.DHB_Date01 || '—'"></td>
+                                                        <td><span class="badge bg-danger text-white small" x-text="ln.ViolationType"></span></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    {# ── Tầng 2: Giá ── #}
+                    <div class="mb-3" x-show="checkResult && checkResult.tier2_price_flags && checkResult.tier2_price_flags.length > 0">
+                        <div class="fw-bold small text-uppercase text-muted mb-2" style="letter-spacing:.1em">
+                            <i class="fas fa-tag me-1"></i> Tầng 2 — Cảnh báo giá
+                        </div>
+                        <div class="check-row check-warn">
+                            <div class="check-icon">⚠</div>
+                            <div class="check-body">
+                                <div class="check-title">Giá mua vượt ngưỡng lịch sử 720 ngày</div>
+                                <div class="check-detail mb-2">
+                                    <span x-text="checkResult ? checkResult.tier2_price_flags.length : 0"></span> dòng hàng có đơn giá vượt 15% so với trung bình 720 ngày.
+                                    Manager bắt buộc xác nhận lý do.
+                                </div>
+                                <table class="table table-sm table-bordered tbl-violation mb-0">
+                                    <thead>
+                                        <tr><th>Mã hàng</th><th class="text-end">Giá hiện tại</th><th class="text-end">TB 720 ngày</th><th class="text-end">Vượt %</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(pf, pi) in (checkResult ? checkResult.tier2_price_flags : [])" :key="pi">
+                                            <tr>
+                                                <td class="font-monospace small" x-text="pf.InventoryID"></td>
+                                                <td class="text-end" x-text="formatMoney(parseFloat(pf.CurrentPrice || 0))"></td>
+                                                <td class="text-end text-muted" x-text="formatMoney(parseFloat(pf.AvgPrice || 0))"></td>
+                                                <td class="text-end fw-bold text-danger" x-text="'+' + parseFloat(pf.PctOver || 0).toFixed(1) + '%'"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ── Tầng 3: Risk Score ── #}
+                    <div class="risk-panel mb-3" x-show="checkResult && checkResult.risk_score !== undefined">
+                        <div class="risk-panel-header">
+                            <div>
+                                <div class="risk-panel-title">Tầng 3 — Risk Score (Weighted)</div>
+                                <div style="font-size:0.72rem;color:rgba(245,240,232,0.45);margin-top:3px">
+                                    FutureMonths = (Tồn + SL đặt) ÷ Tiêu hao tháng · Tỷ trọng theo giá trị dòng hàng
+                                </div>
+                            </div>
+                            <div style="text-align:right">
+                                <div class="risk-score-display"
+                                     :style="riskColor(checkResult ? checkResult.risk_verdict : '')"
+                                     x-text="checkResult && checkResult.risk_score != null ? parseFloat(checkResult.risk_score).toFixed(1) : '—'">
+                                </div>
+                                <div style="font-family:'Courier New',monospace;font-size:0.72rem;margin-top:4px"
+                                     :style="riskColor(checkResult ? checkResult.risk_verdict : '')"
+                                     x-text="checkResult ? checkResult.risk_verdict : ''">
+                                </div>
+                            </div>
+                        </div>
+
+                        {# Flag header #}
+                        <div style="display:grid;grid-template-columns:90px 130px 100px 55px 45px 55px 55px 55px 55px 1fr;gap:6px;padding:4px 10px;margin-bottom:4px">
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25)">Mã hàng</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25)">Tên hàng</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25)">Hiện → Sau nhập</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25)">Tỷ trọng</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25);text-align:right">Tồn</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25);text-align:right">Về</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25);text-align:right">V/th</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25);text-align:right">ROP</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25);text-align:right">Điểm</div>
+                            <div style="font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(245,240,232,0.25)">Lý do</div>
+                        </div>
+
+                        <template x-for="(flag, fi) in (checkResult ? checkResult.risk_flags : [])" :key="fi">
+                            <div class="risk-flag-row" :class="riskFlagClass(flag.case_score)"
+                                 style="display:grid;grid-template-columns:90px 130px 100px 55px 45px 55px 55px 55px 45px 1fr;gap:6px">
+                                <div class="rfl-id" x-text="flag.inventory_id"></div>
+                                <div style="font-size:0.7rem;color:rgba(245,240,232,0.6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" x-text="flag.inventory_name || '—'"></div>
+                                <div class="rfl-mon" :style="monthsColor(flag.future_months)">
+                                    <span x-text="flag.current_months != null ? parseFloat(flag.current_months).toFixed(0) + ' th' : '—'"></span>
+                                    → <strong x-text="flag.future_months != null ? parseFloat(flag.future_months).toFixed(0) + ' th' : 'N/A'"></strong>
+                                </div>
+                                <div class="rfl-wt" x-text="(parseFloat(flag.weight || 0) * 100).toFixed(0) + '% · ' + formatMoney(flag.line_value)"></div>
+                                <div style="font-family:'Courier New',monospace;font-size:0.68rem;text-align:right;color:rgba(245,240,232,0.5)"
+                                     x-text="flag.ton_kho != null ? flag.ton_kho : '—'"></div>
+                                <div style="font-family:'Courier New',monospace;font-size:0.68rem;text-align:right;color:rgba(100,200,255,0.6)"
+                                     x-text="flag.hang_dang_ve != null ? flag.hang_dang_ve : '—'"></div>
+                                <div style="font-family:'Courier New',monospace;font-size:0.68rem;text-align:right"
+                                     :style="flag.velocity ? 'color:rgba(100,220,150,0.8)' : 'color:rgba(255,100,100,0.8)'"
+                                     x-text="flag.velocity != null ? parseFloat(flag.velocity).toFixed(2) : '—'"></div>
+                                <div style="font-family:'Courier New',monospace;font-size:0.68rem;text-align:right;color:rgba(245,240,232,0.4)"
+                                     x-text="flag.rop != null ? parseFloat(flag.rop).toFixed(1) : '—'"></div>
+                                <div class="rfl-pts" :style="scoreColor(flag.weighted_score)" x-text="'+' + parseFloat(flag.weighted_score || 0).toFixed(1)"></div>
+                                <div class="rfl-rsn" x-text="flag.reason"></div>
+                            </div>
+                        </template>
+
+                        <div x-show="!checkResult || !checkResult.risk_flags || checkResult.risk_flags.length === 0"
+                             style="color:rgba(245,240,232,0.3);font-size:0.75rem;text-align:center;padding:10px">
+                            Tất cả dòng hàng đều hợp lý (Score = 0)
+                        </div>
+                    </div>
+
+                    {# ── Phần xác nhận — thay đổi theo quyền và verdict ── #}
+                    <div class="confirm-section">
+                        <div class="confirm-label">
+                            <i class="fas fa-gavel me-1"></i> Phán quyết
+                        </div>
+
+                        {# 1. HARD BLOCK — không thể duyệt #}
+                        <template x-if="checkResult && checkResult.has_block">
+                            <div>
+                                <div class="alert alert-danger mb-2">
+                                    <i class="fas fa-ban me-2"></i>
+                                    <strong>PO không thể duyệt</strong> — Có vi phạm Tầng 1 (Hard-block).
+                                    NV cần sửa lại trên Omega trước khi gửi duyệt lại.
+                                </div>
+                                <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            </div>
+                        </template>
+
+                        {# 2. NV TỰ DUYỆT: PO + Score < 50 + không có NeedsOverride #}
+                        <template x-if="checkResult && !checkResult.has_block
+                                        && currentOrder && currentOrder.VoucherTypeID === 'PO'
+                                        && checkResult.can_self_approve
+                                        && !checkResult.needs_override">
+                            <div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="selfConfirmCheck" x-model="selfConfirmed">
+                                    <label class="form-check-label fw-semibold" for="selfConfirmCheck">
+                                        Tôi xác nhận PO này 100% từ PO chính thức của khách hàng và số lượng kế thừa đúng thực tế.
+                                    </label>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success fw-bold"
+                                            :disabled="!selfConfirmed || submitting"
+                                            @click="submitApproval('APPROVED', true)">
+                                        <span x-show="!submitting"><i class="fas fa-check me-1"></i>Tự duyệt PO</span>
+                                        <span x-show="submitting"><i class="fas fa-spinner fa-spin me-1"></i>Đang xử lý...</span>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                                </div>
+                            </div>
+                        </template>
+
+                        {# 3. MANAGER / GM: Có NeedsOverride hoặc DPO hoặc Score cao #}
+                        <template x-if="checkResult && !checkResult.has_block
+                                        && (checkResult.needs_override
+                                            || (currentOrder && currentOrder.VoucherTypeID === 'DPO')
+                                            || checkResult.requires_gm)">
+                            <div>
+                                {# DPO warning banner #}
+                                <template x-if="currentOrder && currentOrder.VoucherTypeID === 'DPO'">
+                                    <div class="alert alert-info mb-3 small">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>DPO luôn cần Manager/GM duyệt.</strong>
+                                        Kiểm tra Risk Score và lý do dự phòng trước khi quyết định.
+                                    </div>
+                                </template>
+
+                                {# GM-only warning #}
+                                <template x-if="checkResult.requires_gm">
+                                    <div class="alert alert-danger mb-3 small">
+                                        <i class="fas fa-skull-crossbones me-2"></i>
+                                        <strong>Risk Score CRITICAL (≥ 80).</strong> Chỉ GM mới có thể duyệt PO/DPO này.
+                                        Nếu bạn không phải GM, nút duyệt sẽ không hoạt động.
+                                    </div>
+                                </template>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Lý do / Ghi chú xác nhận <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" rows="3" x-model="approverNote"
+                                              placeholder="Nhập lý do duyệt hoặc từ chối (bắt buộc)..."
+                                              :required="true"></textarea>
+                                    <div class="form-text text-muted small">Ghi chú này sẽ lưu vào lịch sử duyệt và không thể thay đổi sau khi xác nhận.</div>
+                                </div>
+
+                                {# DPO: cho phép đánh dấu vi phạm khi từ chối #}
+                                <div class="mb-3" x-show="currentOrder && currentOrder.VoucherTypeID === 'DPO'">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="violationCheck" x-model="markViolation">
+                                        <label class="form-check-label small text-danger fw-semibold" for="violationCheck">
+                                            Đánh dấu vi phạm (chỉ khi từ chối — sẽ ghi vào hồ sơ NV)
+                                        </label>
+                                    </div>
+                                    <div class="mt-2" x-show="markViolation">
+                                        <select class="form-select form-select-sm" x-model="violationType">
+                                            <option value="">-- Chọn loại vi phạm --</option>
+                                            <option value="RISK_HIGH">Rủi ro tồn kho cao</option>
+                                            <option value="RISK_CRITICAL">Rủi ro tồn kho nghiêm trọng</option>
+                                            <option value="PRICE_SPIKE">Giá mua bất thường</option>
+                                            <option value="OTHER">Khác (ghi rõ trong lý do)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button class="btn btn-success fw-bold"
+                                            :disabled="!approverNote.trim() || submitting"
+                                            @click="submitApproval('APPROVED', false)">
+                                        <span x-show="!submitting"><i class="fas fa-check me-1"></i>Duyệt</span>
+                                        <span x-show="submitting"><i class="fas fa-spinner fa-spin me-1"></i></span>
+                                    </button>
+                                    <button class="btn btn-danger fw-bold"
+                                            :disabled="!approverNote.trim() || submitting"
+                                            @click="submitApproval('REJECTED', false)">
+                                        <span x-show="!submitting"><i class="fas fa-times me-1"></i>Từ chối</span>
+                                        <span x-show="submitting"><i class="fas fa-spinner fa-spin me-1"></i></span>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>{# /confirm-section #}
+
+                    </div>{# /tab check #}
+
+                    {# ══════════════════════════════════
+                       TAB 2: CHI TIẾT DÒNG HÀNG
+                    ══════════════════════════════════ #}
+                    <div x-show="activeTab === 'detail'">
+
+                        {# Loading #}
+                        <div x-show="detailLoading" class="text-center py-4">
+                            <i class="fas fa-spinner fa-spin fa-lg text-muted"></i>
+                            <div class="text-muted small mt-2">Đang tải dòng hàng...</div>
+                        </div>
+
+                        {# Bảng dòng hàng #}
+                        <div x-show="!detailLoading && poDetails">
+
+                            {# Info header #}
+                            <div class="d-flex gap-3 mb-3 p-2 rounded" style="background:#f8f9fa; font-size:0.82rem;">
+                                <div><span class="text-muted">Nhà CC:</span> <strong x-text="poDetails ? poDetails.supplier_name : ''"></strong></div>
+                                <div><span class="text-muted">Ngày đặt:</span> <strong x-text="poDetails ? poDetails.order_date : ''"></strong></div>
+                                <div><span class="text-muted">Ghi chú:</span> <span x-text="poDetails && poDetails.notes ? poDetails.notes : '—'"></span></div>
+                            </div>
+
+                            {# Bảng dòng hàng #}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered table-hover mb-2" style="font-size:0.82rem;">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th style="width:40px">#</th>
+                                            <th>Mã hàng</th>
+                                            <th>Tên hàng</th>
+                                            <th class="text-end">SL đặt</th>
+                                            <th class="text-end">Giá mua</th>
+                                            <th class="text-end">Thành tiền</th>
+                                            <th class="text-center">ShipDate</th>
+                                            <th>Kế thừa từ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(ln, i) in (poDetails ? poDetails.lines : [])" :key="i">
+                                            <tr>
+                                                <td class="text-muted text-center" x-text="i + 1"></td>
+                                                <td class="font-monospace small fw-bold" x-text="ln.InventoryID"></td>
+                                                <td x-text="ln.InventoryName || '—'"></td>
+                                                <td class="text-end" x-text="formatNum(ln.OrderQuantity)"></td>
+                                                <td class="text-end" x-text="formatMoney(ln.PurchasePrice)"></td>
+                                                <td class="text-end fw-bold" x-text="formatMoney(ln.LineTotal)"></td>
+                                                <td class="text-center small" x-text="ln.ShipDate || '—'"></td>
+                                                <td class="font-monospace small text-muted" x-text="ln.RefTransactionID || '—'"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-warning fw-bold">
+                                            <td colspan="5" class="text-end">Tổng cộng:</td>
+                                            <td class="text-end" x-text="formatMoney(poDetails ? poDetails.total_value : 0)"></td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            {# Ghi chú dòng hàng #}
+                            <div class="text-muted small mt-1">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Cột <strong>Kế thừa từ</strong> = RefTransactionID — dòng nào hiện <span class="text-danger">—</span> là chưa kế thừa DHB/DTK (Tầng 1 sẽ block).
+                            </div>
+                        </div>
+
+                        {# Empty #}
+                        <div x-show="!detailLoading && !poDetails" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                            Không có dữ liệu dòng hàng.
+                        </div>
+
+                    </div>{# /tab detail #}
+
+                    {# ══════════════════════════════════
+                       TAB 3: RISK DEBUG (Admin only)
+                    ══════════════════════════════════ #}
+                    {% if is_admin %}
+                    <div x-show="activeTab === 'debug'">
+                        <div x-show="debugLoading" class="text-center py-4">
+                            <i class="fas fa-spinner fa-spin fa-lg text-danger"></i>
+                            <div class="text-muted small mt-2">Đang tải dữ liệu Risk...</div>
+                        </div>
+                        <div x-show="!debugLoading && riskDebug">
+                            <div class="d-flex gap-3 mb-3 p-2 rounded small" style="background:#fff3cd">
+                                <div><i class="fas fa-lock me-1 text-danger"></i><strong>Admin Only</strong> — Dữ liệu thô để kiểm tra Risk Score</div>
+                                <div class="ms-auto text-muted" x-text="riskDebug ? riskDebug.item_count + ' mã hàng · Tổng GT: ' + formatMoney(riskDebug.total_po_value) : ''"></div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" style="font-size:0.75rem">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Mã hàng</th>
+                                            <th>Tên hàng</th>
+                                            <th>Nhóm (Varchar05)</th>
+                                            <th class="text-end">SL đặt</th>
+                                            <th class="text-end">Tỷ trọng</th>
+                                            <th class="text-end">Tồn kho</th>
+                                            <th class="text-end">Hàng về</th>
+                                            <th class="text-end">Velocity/th</th>
+                                            <th class="text-end">LeadTime</th>
+                                            <th class="text-center">LT mặc định?</th>
+                                            <th class="text-end">ROP</th>
+                                            <th class="text-end">Thiếu/Dư</th>
+                                            <th class="text-end">Hiện tại (th)</th>
+                                            <th class="text-end">Sau nhập (th)</th>
+                                            <th class="text-center">Velocity?</th>
+                                            <th class="text-center">Tồn kho?</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(r, i) in (riskDebug ? riskDebug.rows : [])" :key="i">
+                                            <tr :class="r.has_velocity ? '' : 'table-warning'">
+                                                <td class="font-monospace fw-bold" x-text="r.inventory_id"></td>
+                                                <td x-text="r.inventory_name || '—'"></td>
+                                                <td class="font-monospace small text-muted" x-text="r.varchar05 || '—'"></td>
+                                                <td class="text-end" x-text="formatNum(r.order_qty)"></td>
+                                                <td class="text-end" x-text="r.weight_pct.toFixed(1) + '%'"></td>
+                                                <td class="text-end" x-text="formatNum(r.ton_kho)"></td>
+                                                <td class="text-end text-info" x-text="formatNum(r.hang_dang_ve)"></td>
+                                                <td class="text-end" :class="r.has_velocity ? 'text-success' : 'text-danger fw-bold'"
+                                                    x-text="r.tieu_hao_thang !== null ? r.tieu_hao_thang.toFixed(3) : '—'"></td>
+                                                <td class="text-end" x-text="r.lead_time_days !== null ? r.lead_time_days + ' ng' : '—'"></td>
+                                                <td class="text-center">
+                                                    <span x-show="r.is_default_lead" class="badge bg-warning text-dark" style="font-size:0.65rem">Mặc định</span>
+                                                    <span x-show="!r.is_default_lead" class="text-success small">✓</span>
+                                                </td>
+                                                <td class="text-end" x-text="r.rop !== null ? r.rop.toFixed(2) : '—'"></td>
+                                                <td class="text-end fw-bold"
+                                                    :class="r.luong_thieu_du !== null && r.luong_thieu_du > 0 ? 'text-danger' : 'text-success'"
+                                                    x-text="r.luong_thieu_du !== null ? r.luong_thieu_du.toFixed(2) : '—'"></td>
+                                                <td class="text-end" x-text="r.current_months !== null ? r.current_months.toFixed(1) + ' th' : '—'"></td>
+                                                <td class="text-end fw-bold" x-text="r.future_months !== null ? r.future_months.toFixed(1) + ' th' : 'N/A'"></td>
+                                                <td class="text-center">
+                                                    <span :class="r.has_velocity ? 'text-success' : 'text-danger'" x-text="r.has_velocity ? '✓' : '✗'"></span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span :class="r.has_stock ? 'text-success' : 'text-warning'" x-text="r.has_stock ? '✓' : '—'"></span>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-2 small text-muted">
+                                <span class="badge bg-warning text-dark me-1">Mặc định</span> LeadTime chưa cấu hình trong IT1302, dùng 30 ngày mặc định.
+                                <span class="ms-2 text-danger fw-bold">Hàng vàng</span> = không có velocity (Case 0).
+                            </div>
+                        </div>
+                        <div x-show="!debugLoading && !riskDebug" class="text-center text-muted py-4">
+                            <i class="fas fa-database fa-2x mb-2 d-block"></i>Không có dữ liệu.
+                        </div>
+                    </div>{# /tab debug #}
+                    {% endif %}
+
+                </div>{# /modal-body #}
+
+                {# Loading state #}
+                <div class="modal-body text-center py-5" x-show="modalLoading">
+                    <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3 d-block"></i>
+                    <span class="text-muted">Đang chạy 5 tầng kiểm tra...</span>
+                </div>
+
+                <div class="modal-footer py-2">
+                    <small class="text-muted me-auto">
+                        <span x-text="currentOrder ? currentOrder.POrderID : ''"></span>
+                    </small>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>{# /x-data #}
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+function poApproval() {
+    return {
+        // ── State ──────────────────────────────────────────
+        selectedPOrderId: null,
+        currentOrder: null,
+        checkResult: null,
+        poDetails: null,
+        riskDebug: null,
+        activeTab: 'check',
+        modalLoading: false,
+        detailLoading: false,
+        debugLoading: false,
+        submitting: false,
+        modal: null,
+
+        // Form state
+        selfConfirmed: false,
+        approverNote: '',
+        markViolation: false,
+        violationType: '',
+
+        // ── Init ───────────────────────────────────────────
+        init() {
+            this.modal = new bootstrap.Modal(document.getElementById('approvalModal'));
+        },
+
+        // ── Refresh danh sách sau khi duyệt — không reload trang ──
+        // Lấy từ ý tưởng Gemini: fetchPending() thay vì location.reload()
+        // Giữ filter hiện tại, chỉ xóa row vừa duyệt khỏi DOM
+        removeFromList(pOrderId) {
+            const row = document.querySelector(`tr[data-porder="${pOrderId}"]`);
+            if (row) {
+                row.style.transition = 'opacity 0.4s, transform 0.4s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(20px)';
+                setTimeout(() => row.remove(), 400);
+            }
+            // Cập nhật stat chips: giảm số tổng đi 1
+            const totalEl = document.querySelector('[data-stat="total"]');
+            if (totalEl) totalEl.textContent = Math.max(0, parseInt(totalEl.textContent) - 1);
+        },
+
+        // ── Open modal: load check results ─────────────────
+        async openModal(order) {
+            this.currentOrder    = order;
+            this.selectedPOrderId = order.POrderID;
+            this.checkResult     = null;
+            this.poDetails       = null;
+            this.activeTab       = 'check';
+            this.modalLoading    = true;
+            this.selfConfirmed   = false;
+            this.approverNote    = '';
+            this.markViolation   = false;
+            this.violationType   = '';
+            this.modal.show();
+
+            try {
+                const resp = await fetch(
+                    `/api/po/check_result/${encodeURIComponent(order.POrderID)}`
+                );
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                this.checkResult = await resp.json();
+            } catch (e) {
+                Swal.fire('Lỗi', 'Không tải được kết quả kiểm tra: ' + e.message, 'error');
+                this.modal.hide();
+            } finally {
+                this.modalLoading = false;
+            }
+        },
+
+        // ── Load chi tiết dòng hàng khi chuyển tab ─────────
+        async switchTab(tab) {
+            this.activeTab = tab;
+            if (tab === 'detail' && !this.poDetails && this.currentOrder) {
+                this.detailLoading = true;
+                try {
+                    const resp = await fetch(
+                        `/api/po/detail/${encodeURIComponent(this.currentOrder.POrderID)}`
+                    );
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    this.poDetails = await resp.json();
+                } catch (e) {
+                    Swal.fire('Lỗi', 'Không tải được chi tiết PO: ' + e.message, 'error');
+                } finally {
+                    this.detailLoading = false;
+                }
+            }
+            if (tab === 'debug' && !this.riskDebug && this.currentOrder) {
+                this.debugLoading = true;
+                try {
+                    const resp = await fetch(
+                        `/api/po/risk_debug/${encodeURIComponent(this.currentOrder.POrderID)}`
+                    );
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    this.riskDebug = await resp.json();
+                } catch (e) {
+                    Swal.fire('Lỗi', 'Không tải được Risk Debug: ' + e.message, 'error');
+                } finally {
+                    this.debugLoading = false;
+                }
+            }
+        },
+
+        // ── Submit approval / rejection ────────────────────
+        async submitApproval(action, isSelfApproved) {
+            // Validate
+            if (action === 'APPROVED' && isSelfApproved && !this.selfConfirmed) return;
+            if (!isSelfApproved && !this.approverNote.trim()) {
+                Swal.fire('Thiếu thông tin', 'Vui lòng nhập lý do trước khi xác nhận.', 'warning');
+                return;
+            }
+            if (this.markViolation && !this.violationType) {
+                Swal.fire('Thiếu thông tin', 'Vui lòng chọn loại vi phạm.', 'warning');
+                return;
+            }
+
+            const confirmMsg = action === 'APPROVED'
+                ? `Xác nhận DUYỆT ${this.currentOrder.VoucherNo}?`
+                : `Xác nhận TỪ CHỐI ${this.currentOrder.VoucherNo}?`;
+            const confirmResult = await Swal.fire({
+                title: confirmMsg,
+                icon: action === 'APPROVED' ? 'question' : 'warning',
+                showCancelButton: true,
+                confirmButtonText: action === 'APPROVED' ? 'Duyệt' : 'Từ chối',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: action === 'APPROVED' ? '#198754' : '#dc3545',
+            });
+            if (!confirmResult.isConfirmed) return;
+
+            this.submitting = true;
+
+            try {
+                const payload = {
+                    porder_id:       this.currentOrder.POrderID,
+                    voucher_no:      this.currentOrder.VoucherNo,
+                    voucher_type_id: this.currentOrder.VoucherTypeID,
+                    employee_id:     this.currentOrder.EmployeeID,
+                    action:          action,
+                    approver_note:   isSelfApproved
+                                        ? 'Tự duyệt: đã xác nhận PO 100% từ KH.'
+                                        : this.approverNote,
+                    is_self_approved: isSelfApproved ? 1 : 0,
+                    risk_score:      this.checkResult ? this.checkResult.risk_score : 0,
+                    risk_verdict:    this.checkResult ? this.checkResult.risk_verdict : '',
+                    fraud_flags_json: this.checkResult ? JSON.stringify(this.checkResult.risk_flags) : '[]',
+                    tier2_price_flag: this.checkResult && this.checkResult.tier2_price_flags.length > 0 ? 1 : 0,
+                    is_violation:    this.markViolation ? 1 : 0,
+                    violation_type:  this.violationType,
+                    violation_evidence: this.checkResult ? JSON.stringify(this.checkResult.risk_flags) : '{}',
+                };
+
+                const resp = await fetch('/api/po/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const res = await resp.json();
+
+                if (res.success) {
+                    this.modal.hide();
+                    // Lấy từ Gemini: không reload cả trang — xóa row khỏi DOM
+                    this.removeFromList(this.currentOrder.POrderID);
+                    Swal.fire({
+                        title: action === 'APPROVED' ? 'Đã duyệt!' : 'Đã từ chối',
+                        text: res.message,
+                        icon: action === 'APPROVED' ? 'success' : 'info',
+                        timer: 1800,
+                        showConfirmButton: false,
+                    });
+                } else {
+                    // Nếu server phát hiện score mismatch hoặc block mới
+                    // → reload modal để user thấy kết quả kiểm tra cập nhật
+                    const isServerBlock = res.message && (
+                        res.message.includes('Tầng 1') ||
+                        res.message.includes('Score') ||
+                        res.message.includes('server')
+                    );
+                    if (isServerBlock) {
+                        Swal.fire({
+                            title: 'Dữ liệu đã thay đổi',
+                            text: res.message + ' — Đang tải lại kết quả kiểm tra.',
+                            icon: 'warning',
+                        }).then(() => {
+                            // Re-fetch check result để modal hiển thị đúng
+                            this.checkResult = null;
+                            this.modalLoading = true;
+                            fetch(`/api/po/check_result/${encodeURIComponent(this.currentOrder.POrderID)}`)
+                                .then(r => r.json())
+                                .then(d => { this.checkResult = d; this.modalLoading = false; });
+                        });
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                }
+            } catch (e) {
+                Swal.fire('Lỗi hệ thống', e.message, 'error');
+            } finally {
+                this.submitting = false;
+            }
+        },
+
+        // ── Helpers ────────────────────────────────────────
+        formatNum(val) {
+            if (!val && val !== 0) return '—';
+            return new Intl.NumberFormat('vi-VN').format(parseFloat(String(val).replace(/,/g,'')));
+        },
+        formatMoney(val) {
+            if (!val && val !== 0) return '—';
+            const v = parseFloat(String(val).replace(/,/g,''));
+            if (v >= 1e9)  return (v/1e9).toFixed(1) + ' tỷ';
+            if (v >= 1e6)  return (v/1e6).toFixed(1) + ' tr';
+            return new Intl.NumberFormat('vi-VN').format(v);
+        },
+
+        riskColor(verdict) {
+            const map = {
+                'SAFE':     'color:#90c8a0',
+                'WARN':     'color:#e8d090',
+                'HIGH':     'color:#e8a870',
+                'CRITICAL': 'color:#e8a0a0',
+            };
+            return map[verdict] || 'color:rgba(245,240,232,0.3)';
+        },
+
+        // Case score → CSS class for risk flag row
+        riskFlagClass(caseScore) {
+            if (caseScore === 0)  return 'rfl-safe';
+            if (caseScore <= 25)  return 'rfl-warn';
+            if (caseScore <= 55)  return 'rfl-high';
+            return 'rfl-crit';
+        },
+
+        monthsColor(months) {
+            if (months === null || months === undefined) return 'color:rgba(245,240,232,0.3)';
+            if (months < 6)  return 'color:#90c8a0';
+            if (months < 12) return 'color:#e8d090';
+            if (months < 24) return 'color:#e8a870';
+            return 'color:#e8a0a0';
+        },
+
+        scoreColor(pts) {
+            if (pts === 0)     return 'color:rgba(245,240,232,0.25)';
+            if (pts < 10)      return 'color:#e8d090';
+            if (pts < 30)      return 'color:#e8a870';
+            return 'color:#e8a0a0';
+        },
+    }
+}
+</script>
+{% endblock %}

@@ -51,14 +51,22 @@ class CRMService:
             if terms:
                 or_conditions = []
                 for term in terms:
-                    or_conditions.append(f"(T1.[NOI DUNG 2] LIKE ? OR T1.[DANH GIA 2] LIKE ?)")
-                    where_params.extend([f'%{term}%', f'%{term}%'])
+                    or_conditions.append(f"(T1.[NOI DUNG 2] LIKE ? OR T1.[DANH GIA 2] LIKE ? OR T1.[NOI DUNG 4] LIKE ? OR T1.[NOI DUNG 5] LIKE ? OR T1.[DANH GIA 4] LIKE ?)")
+                    where_params.extend([f'%{term}%', f'%{term}%', f'%{term}%', f'%{term}%', f'%{term}%'])
                 where_conditions.append("(" + " OR ".join(or_conditions) + ")")
+
+        # 4. Saved views (Chỉ của tôi / Có file)
+        saved_view = (filters.get('saved_view') or '').strip()
+        if saved_view == 'mine' and current_user_code:
+            where_conditions.append("T1.NGUOI = ?")
+            where_params.append(current_user_code)
+        elif saved_view == 'has_files':
+            where_conditions.append("ISNULL(LTRIM(RTRIM(T1.ATTACHMENTS)), '') <> ''")
 
         where_clause = " AND ".join(where_conditions)
         offset = (page - 1) * per_page
         
-        # 4. Đếm tổng
+        # 4. Đếm tổng + tính thêm vài chỉ số tổng quan (status strip)
         count_query = f"""
             SELECT COUNT(T1.STT) AS Total
             FROM {config.TEN_BANG_BAO_CAO} AS T1
@@ -70,12 +78,29 @@ class CRMService:
         total_reports = total_count_data[0]['Total'] if total_count_data and total_count_data[0].get('Total') is not None else 0
         total_pages = (total_reports + per_page - 1) // per_page if total_reports > 0 else 1
 
+        metrics = {"today_count": 0, "distinct_customers": 0}
+        metrics_query = f"""
+            SELECT 
+                SUM(CASE WHEN CONVERT(date, T1.NGAY) = CONVERT(date, GETDATE()) THEN 1 ELSE 0 END) AS TodayCount,
+                COUNT(DISTINCT T1.[KHACH HANG]) AS DistinctCustomers
+            FROM {config.TEN_BANG_BAO_CAO} AS T1
+            LEFT JOIN {config.TEN_BANG_NGUOI_DUNG} AS T2 ON T1.NGUOI = T2.USERCODE
+            LEFT JOIN {config.ERP_IT1202} AS T3 ON T1.[KHACH HANG] = T3.ObjectID 
+            WHERE {where_clause}
+        """
+        metrics_data = self.db.get_data(metrics_query, tuple(where_params))
+        if metrics_data:
+            row_m = metrics_data[0]
+            metrics["today_count"] = int(row_m.get('TodayCount') or 0)
+            metrics["distinct_customers"] = int(row_m.get('DistinctCustomers') or 0)
+
         # 5. Lấy dữ liệu phân trang
         report_query = f"""
             SELECT 
                 T1.STT AS ID_KEY, T1.NGAY, T2.SHORTNAME AS NV, 
                 ISNULL(T3.ShortObjectName, T3.ObjectName) AS KH, 
                 T1.[NOI DUNG 2] AS [NOI DUNG 1], T1.[DANH GIA 2] AS [DANH GIA 1],
+                T1.[NOI DUNG 4] AS ND4_VAL, T1.[NOI DUNG 5] AS ND5_VAL, T1.[DANH GIA 4] AS DG4_VAL,
                 T1.ATTACHMENTS
             FROM {config.TEN_BANG_BAO_CAO} AS T1
             LEFT JOIN {config.TEN_BANG_NGUOI_DUNG} AS T2 ON T1.NGUOI = T2.USERCODE
@@ -99,7 +124,7 @@ class CRMService:
         details = f"Xem Dashboard: User={filters['selected_user']}, KH={filters['kh_search']}, Page={page}"
         self.db.write_audit_log(current_user_code, 'VIEW_REPORT_DASHBOARD', 'INFO', details, user_ip)
 
-        return users_data, report_data or [], total_reports, total_pages
+        return users_data, report_data or [], total_reports, total_pages, metrics
 
     # ==========================================
     # 2. CHI TIẾT BÁO CÁO
@@ -145,6 +170,20 @@ class CRMService:
         report = data[0]
         atts_str = report.get('ATTACHMENTS')
         report['ATTACHMENT_LIST'] = [f for f in atts_str.split(';') if f.strip()] if atts_str else []
+
+        # Lấy lịch sử các báo cáo khác cùng khách hàng (tối đa 5 bản gần nhất)
+        kh_ma = report.get('KH_Ma')
+        history = []
+        if kh_ma:
+            history_sql = f"""
+                SELECT TOP 5 STT, CONVERT(VARCHAR, NGAY, 103) AS NGAY, LOAI, {config.TEN_BANG_LOAI_BAO_CAO}.[DIEN GIAI] AS LOAI_DG
+                FROM {config.TEN_BANG_BAO_CAO}
+                LEFT JOIN {config.TEN_BANG_LOAI_BAO_CAO} ON {config.TEN_BANG_BAO_CAO}.LOAI = {config.TEN_BANG_LOAI_BAO_CAO}.LOAI
+                WHERE [KHACH HANG] = ? AND STT <> ?
+                ORDER BY NGAY DESC, STT DESC
+            """
+            history = self.db.get_data(history_sql, (kh_ma, report_stt))
+        report['KH_HISTORY'] = history or []
         
         self.db.write_audit_log(current_user_code, 'VIEW_REPORT_DETAIL', 'INFO', f"Xem chi tiết STT: {report_stt}", user_ip)
         return True, report
@@ -158,31 +197,40 @@ class CRMService:
         return users, loai
 
     def create_report(self, form_data, attachments_str, current_user_code, user_ip):
-        ngay = form_data.get('ngay_bao_cao') or datetime.now().strftime('%Y-%m-%d')
-        loai = form_data.get('loai')
-        nguoi = form_data.get('nv_bao_cao') or current_user_code
-        khach_hang = form_data.get('ma_doi_tuong_kh')
+        """Trả về (success: bool, message: str, report_stt: str|None) — luôn đủ 3 giá trị."""
+        try:
+            ngay = form_data.get('ngay_bao_cao') or datetime.now().strftime('%Y-%m-%d')
+            loai = form_data.get('loai')
+            nguoi = form_data.get('nv_bao_cao') or current_user_code
+            khach_hang = form_data.get('ma_doi_tuong_kh')
 
-        insert_query = f"""
-            INSERT INTO {config.TEN_BANG_BAO_CAO} (
-                NGAY, LOAI, NGUOI, [NGUOI LAM], 
-                [NOI DUNG 1], [NOI DUNG 2], [NOI DUNG 3], [NOI DUNG 4], [NOI DUNG 5],
-                [DANH GIA 1], [DANH GIA 2], [DANH GIA 3], [DANH GIA 4], [DANH GIA 5],
-                [KHACH HANG], [HIEN DIEN TRUOC 1], [HIEN DIEN TRUOC 2], ATTACHMENTS
+            insert_query = f"""
+                INSERT INTO {config.TEN_BANG_BAO_CAO} (
+                    NGAY, LOAI, NGUOI, [NGUOI LAM], 
+                    [NOI DUNG 1], [NOI DUNG 2], [NOI DUNG 3], [NOI DUNG 4], [NOI DUNG 5],
+                    [DANH GIA 1], [DANH GIA 2], [DANH GIA 3], [DANH GIA 4], [DANH GIA 5],
+                    [KHACH HANG], [HIEN DIEN TRUOC 1], [HIEN DIEN TRUOC 2], ATTACHMENTS
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            params = (
+                ngay, loai, nguoi, current_user_code,
+                form_data.get('noi_dung_1'), form_data.get('noi_dung_2'), form_data.get('noi_dung_3'), form_data.get('noi_dung_4'), form_data.get('noi_dung_5'),
+                form_data.get('danh_gia_1'), form_data.get('danh_gia_2'), form_data.get('danh_gia_3'), form_data.get('danh_gia_4'), form_data.get('danh_gia_5'),
+                khach_hang, form_data.get('nhansu_hengap_1'), form_data.get('nhansu_hengap_2'), attachments_str
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        params = (
-            ngay, loai, nguoi, current_user_code,
-            form_data.get('noi_dung_1'), form_data.get('noi_dung_2'), form_data.get('noi_dung_3'), form_data.get('noi_dung_4'), form_data.get('noi_dung_5'),
-            form_data.get('danh_gia_1'), form_data.get('danh_gia_2'), form_data.get('danh_gia_3'), form_data.get('danh_gia_4'), form_data.get('danh_gia_5'),
-            khach_hang, form_data.get('nhansu_hengap_1'), form_data.get('nhansu_hengap_2'), attachments_str
-        )
-        
-        if self.db.execute_non_query(insert_query, params):
-            self.db.write_audit_log(nguoi, 'REPORT_CREATE', 'INFO', f"Tạo báo cáo mới (Loại: {loai}, KH: {khach_hang})", user_ip)
-            return True, "Lưu thành công!"
-        return False, "Lỗi SQL khi lưu dữ liệu."
+
+            if self.db.execute_non_query(insert_query, params):
+                self.db.write_audit_log(nguoi, 'REPORT_CREATE', 'INFO', f"Tạo báo cáo mới (Loại: {loai}, KH: {khach_hang})", user_ip)
+                last_report = self.db.get_data(
+                    f"SELECT TOP 1 STT FROM {config.TEN_BANG_BAO_CAO} WHERE NGUOI = ? AND NGAY = ? ORDER BY STT DESC",
+                    (nguoi, ngay)
+                )
+                report_stt = str(last_report[0]['STT']) if last_report and last_report[0].get('STT') is not None else None
+                return True, "Lưu thành công!", report_stt
+            return False, "Lỗi SQL khi lưu dữ liệu.", None
+        except Exception as e:
+            return False, f"Lỗi khi lưu báo cáo: {str(e)}", None
 
     # ==========================================
     # 4. NHÂN SỰ LIÊN HỆ (Đã fix lỗi INSERT)

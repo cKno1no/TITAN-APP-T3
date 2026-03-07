@@ -1,0 +1,129 @@
+/**
+ * Budget Dashboard - Đề nghị thanh toán
+ * Cards, form, autocomplete, table, empty state.
+ */
+
+.card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+.card-header {
+    background-color: var(--input-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 18px 22px;
+    font-weight: 700;
+    color: var(--primary);
+}
+.card-body {
+    padding: 1.25rem 1.5rem !important;
+}
+
+.form-control,
+.form-select {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-dark);
+    border-radius: 10px;
+    padding: 10px 15px;
+}
+.form-control:focus {
+    background-color: var(--card-bg);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(67, 24, 255, 0.2);
+}
+.input-group-text {
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--secondary);
+}
+
+/* Inline validation */
+.form-error-inline {
+    font-size: 0.8rem;
+    color: var(--danger);
+    margin-top: 0.25rem;
+    min-height: 1.25rem;
+}
+
+/* Autocomplete */
+.autocomplete-list {
+    max-height: 250px;
+    overflow-y: auto;
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+    display: none;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 12px 12px;
+    box-shadow: var(--shadow-md);
+    margin-top: 4px;
+}
+.list-group-item {
+    cursor: pointer;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 15px;
+    background-color: var(--card-bg);
+    color: var(--text-dark);
+}
+.list-group-item:hover {
+    background-color: var(--input-bg);
+}
+.tag-badge {
+    font-size: 0.75em;
+    background: var(--input-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    color: var(--secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Table */
+.table th {
+    background-color: var(--input-bg) !important;
+    color: var(--secondary);
+    font-size: 0.85rem;
+    border-bottom: 2px solid var(--border-color);
+    padding: 12px 14px !important;
+}
+.table td {
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-dark);
+    padding: 12px 14px !important;
+}
+.table tbody tr:hover td {
+    background-color: var(--input-bg);
+}
+
+/* Empty state history */
+.budget-history-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
+.budget-history-empty i {
+    font-size: 3rem;
+    opacity: 0.25;
+    margin-bottom: 1rem;
+}
+
+/* Submit button loading */
+#budgetSubmitBtn:disabled {
+    opacity: 0.85;
+    cursor: not-allowed;
+}
+
+@media (max-width: 992px) {
+    .d-flex.gap-2 { width: 100%; justify-content: space-between; }
+    .row { flex-direction: column; }
+    .col-md-5, .col-md-7 { width: 100%; }
+    .table-responsive { max-height: 400px; }
+}

@@ -302,9 +302,8 @@ def submit_peer_review():
         
         # 2. [THÊM MỚI] Ghi nhận Activity để tặng +20 XP nếu có comment chất lượng (>10 ký tự)
         if len(note) >= 10:
-            # Lưu ý: Gamification thường nằm trong chatbot_service hoặc service riêng tùy cấu hình factory
-            if hasattr(current_app, 'chatbot_service'):
-                current_app.chatbot_service.gamification.log_activity(evaluator, 'PEER_REVIEWER')
+            if hasattr(current_app, 'gamification_service'):
+                current_app.gamification_service.log_activity(evaluator, 'PEER_REVIEWER')
 
     return jsonify(result)
 

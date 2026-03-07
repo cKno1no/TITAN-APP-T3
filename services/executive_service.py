@@ -385,7 +385,8 @@ class ExecutiveService:
                 otif_data = self.db.get_data(query_otif, (y,))
                 if otif_data and safe_float(otif_data[0]['Total']) > 0:
                     otif_score = (safe_float(otif_data[0]['OnTime']) / safe_float(otif_data[0]['Total'])) * 100
-            except: pass
+            except Exception:
+                pass
 
             # 4. TÀI SẢN & CÔNG NỢ (Snapshot cuối năm)
             # [NEW] Logic tính Dư nợ và Tuổi nợ tại thời điểm 31/12/Y

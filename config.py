@@ -193,6 +193,10 @@ SYSTEM_FEATURES_GROUPS = {
     "7. QUẢN LÝ CÔNG VIỆC (TASK)": {
         'VIEW_TASK': 'Sử dụng Task Dashboard',
         'VIEW_TASK_TEAM': 'Xem Task của nhân viên cấp dưới'
+    },
+    "8. QUYỀN PHÊ DUYỆT PO (PO APPROVAL)": {
+        'APPROVE_PO':   'Duyệt Đơn mua hàng (PO — Tự duyệt)',
+        'APPROVE_DPO':  'Duyệt Đơn mua Dự phòng (DPO — Manager/GM)'
     }
 }
 
@@ -221,6 +225,11 @@ TABLE_COMMISSION_RECIPIENTS = '[dbo].[DE XUAT BAO HANH_DETAIL]'
 TABLE_BUDGET_MASTER = 'dbo.BUDGET_MASTER'
 TABLE_BUDGET_PLAN = 'dbo.BUDGET_PLAN'
 TABLE_EXPENSE_REQUEST = 'dbo.EXPENSE_REQUEST'
+# PO Approval tables
+TABLE_PO_APPROVAL_HISTORY       = 'dbo.CRM_PO_Approval_History'
+TABLE_PO_VIOLATION_HISTORY      = 'dbo.CRM_PO_Violation_History'
+TABLE_DHB_RISK_HISTORY          = 'dbo.CRM_DHB_Risk_History'
+TABLE_EMPLOYEE_RISK_SCORE       = 'dbo.CRM_Employee_Risk_Score'
 
 # --- B. BẢNG ERP (OMEGA_STDD / OMEGA_TEST) ---
 ERP_DB = '[OMEGA_STDD]' # <-- Đang dùng bản TEST theo file gốc
@@ -273,11 +282,20 @@ SP_CREATE_COMMISSION = 'dbo.sp_CreateCommissionProposal'
 
 # Widget Portal (Dùng trong portal_service để hiện gợi ý dự phòng ngoài trang chủ)
 SP_REPLENISH_PORTAL = 'dbo.sp_GetPortalReplenishment'
+# PO Approval SPs
+SP_PO_PENDING_LIST              = 'dbo.sp_GetPOPendingList'
+SP_PO_CHECK_LINES               = 'dbo.sp_CheckPOLines'
+SP_PO_CHECK_PRICE               = 'dbo.sp_CheckPOPriceHistory'
+SP_PO_RISK_CONTEXT              = 'dbo.sp_GetInventoryRiskContext'
+SP_PO_APPROVE                   = 'dbo.sp_ApprovePO'
 
 # --- E. BẢNG GAMIFICATION & PROFILE (TITAN OS) ---
 TABLE_TITAN_ITEMS = '[dbo].[TitanOS_SystemItems]'
 TABLE_TITAN_PROFILE = '[dbo].[TitanOS_UserProfile]'
 TABLE_TITAN_INVENTORY = '[dbo].[TitanOS_UserInventory]'
+
+# Trong SYSTEM_FEATURES_GROUPS["4. QUYỀN PHÊ DUYỆT (APPROVAL)"]:
+
 
 # =========================================================================
 # 3. BỔ SUNG: JOB & SP HỖ TRỢ (Dành cho Scheduled Tasks hoặc Admin Tool)
@@ -296,6 +314,20 @@ QUOTE_STATUS_DELAY = 'DELAY'
 QUOTE_RISK_DELAY_DAYS = 10          # Cảnh báo nếu trễ > 10 ngày
 QUOTE_RISK_NO_ACTION_DAYS = 5       # Cảnh báo nếu không có hành động > 5 ngày
 QUOTE_RISK_AVG_VALUE = 30000000.0   # Giá trị trung bình (30 Triệu)
+
+# [PO Approval] — Risk Scoring Engine (PORiskScorer)
+PO_RISK_PRICE_HISTORY_DAYS      = 720       # Số ngày lịch sử tra giá mua
+PO_RISK_PRICE_THRESHOLD_PCT     = 15.0      # Vượt X% → Tầng 2 Warning
+
+# FutureMonthsOfStock thresholds (= (Ton + OrderQty) / TieuHaoThang)
+PO_RISK_MONTHS_WARN             = 6         # > 6 tháng  → Case A/D (score thấp)
+PO_RISK_MONTHS_HIGH             = 12        # > 12 tháng → Case B/E/F (score cao)
+PO_RISK_MONTHS_CRITICAL         = 24        # > 24 tháng → Case C/G  (score cực cao)
+
+# Weighted score → action thresholds
+PO_RISK_SCORE_WARN              = 1         # score > 0   → NeedsOverride (PO tự duyệt)
+PO_RISK_SCORE_ESCALATE_MGR      = 50        # score ≥ 50  → bắt buộc Manager duyệt
+PO_RISK_SCORE_ESCALATE_GM       = 80        # score ≥ 80  → chỉ GM duyệt
 
 # Trong config.py, thêm vào phần 7 (Cấu hình Database Objects)
 TABLE_COMMISSION_MASTER = '[dbo].[DE XUAT BAO HANH_MASTER]'

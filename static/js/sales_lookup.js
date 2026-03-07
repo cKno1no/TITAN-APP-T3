@@ -229,7 +229,7 @@ $(document).ready(function() {
             return;
         }
 
-        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang tra...');
 
         // Ẩn Block 2, 3 và hiện Block 1
         $('#block2-container, #block3-container').hide();
@@ -261,36 +261,43 @@ $(document).ready(function() {
 
             if (data && data.length > 0) {
                 data.forEach(item => {
-                    // Tạo dòng HTML
-                    const row = $(`<tr style="cursor: pointer;">
-                        <td class="text-start">${item.InventoryID}</td>
+                    const row = $(`<tr style="cursor: pointer;" title="Tồn: ${formatCurrency(item.Ton)} · BackOrder: ${formatCurrency(item.BackOrder)} · Click xem BackOrder">
+                        <td class="text-start text-primary fw-bold">${item.InventoryID}</td>
                         <td class="text-start">${item.InventoryName}</td>
-                        <td class="text-end">${formatCurrency(item.Ton)}</td>
-                        <td class="text-end">${formatCurrency(item.BackOrder)}</td>
-                        <td class="text-end">${formatCurrency(item.GiaBanQuyDinh)}</td>
+                        <td class="text-end fw-bold">${formatCurrency(item.Ton)}</td>
+                        <td class="text-end text-danger">${formatCurrency(item.BackOrder)}</td>
+                        <td class="text-end text-success fw-bold">${formatCurrency(item.GiaBanQuyDinh)}</td>
                         <td class="text-end">—</td>
                         <td class="text-end">—</td>
                     </tr>`);
-
-                    // Gắn sự kiện click
                     row.on('click', function() {
                         window.showBackorderModal(item.InventoryID, item.InventoryName);
                     });
-
                     tbody.append(row);
                 });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã cập nhật tồn cho ' + data.length + ' mặt hàng', showConfirmButton: false, timer: 2500 });
+                } else {
+                    alert('Đã cập nhật tồn cho ' + data.length + ' mặt hàng.');
+                }
             } else {
                 tbody.append('<tr><td colspan="7" class="text-center">Không tìm thấy dữ liệu tra cứu nhanh.</td></tr>');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Không tìm thấy dữ liệu', showConfirmButton: false, timer: 2000 });
+                }
             }
-
-            // Re-init DataTable
             initializeBlock1DataTable();
+            if (typeof window.updateLookupContext === 'function') window.updateLookupContext();
         })
         .catch(error => {
-            alert('Lỗi Tra cứu nhanh: ' + error.message);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Lỗi: ' + error.message, showConfirmButton: false, timer: 3000 });
+            } else {
+                alert('Lỗi Tra cứu nhanh: ' + error.message);
+            }
         })
         .finally(() => {
-            button.prop('disabled', false).html('<i class="fas fa-bolt"></i> Tra nhanh Tồn');
+            button.prop('disabled', false).html('<i class="fas fa-bolt"></i> Tra nhanh');
         });
     });
 

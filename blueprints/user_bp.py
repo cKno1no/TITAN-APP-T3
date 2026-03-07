@@ -103,7 +103,7 @@ def profile():
     # [FIX] Ép kiểu Level để tránh lỗi so sánh template
     try:
         user_data['Level'] = int(user_data.get('Level', 1))
-    except:
+    except Exception:
         user_data['Level'] = 1
 
     inventory_sql = """
@@ -134,7 +134,8 @@ def profile():
 def buy_item():
     user_code = session.get('user_code')
     item_code = request.json.get('item_code')
-    result = current_app.user_service.buy_item(user_code, item_code)
+    price = request.json.get('price')
+    result = current_app.user_service.buy_item(user_code, item_code, price)
     return jsonify(result)
 
 @user_bp.route('/api/user/equip_item', methods=['POST'])

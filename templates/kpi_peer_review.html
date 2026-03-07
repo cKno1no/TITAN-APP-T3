@@ -1,68 +1,91 @@
 {% extends "base.html" %}
-{% block title %}Phối hợp nhịp nhàng - Đánh giá 360{% endblock %}
+{% block title %}Phối hợp nhịp nhàng - Đánh giá 360 | Titan OS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .peer-hero-strip {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 12px 20px; margin-bottom: 20px;
+        background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; font-size: 0.9rem;
+    }
+    .peer-hero-strip .hero-dot { opacity: 0.5; margin: 0 4px; }
+    .peer-hero-strip .hero-step { color: var(--secondary); }
+    .peer-hero-strip .hero-step strong { color: var(--text-dark); }
+
+    .user-list-item { cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent; }
+    .user-list-item:hover { background-color: var(--input-bg) !important; }
+    .user-list-item.active { background-color: rgba(13, 110, 253, 0.08) !important; border-left-color: var(--primary); font-weight: 600; }
+
+    .avatar-sm { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); }
+    .avatar-lg { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: var(--shadow-md); }
+
+    .score-card {
+        cursor: pointer; transition: all 0.3s; border: 2px solid var(--border-color); border-radius: 12px;
+        filter: grayscale(80%); opacity: 0.6; background: var(--card-bg);
+    }
+    .score-card:hover { filter: grayscale(0%); opacity: 1; transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+    .score-card.active-S { border-color: var(--success); filter: grayscale(0%); opacity: 1; background-color: rgba(5, 205, 153, 0.08); transform: scale(1.02); box-shadow: 0 0 0 3px rgba(5, 205, 153, 0.2); }
+    .score-card.active-A { border-color: var(--primary); filter: grayscale(0%); opacity: 1; background-color: rgba(67, 24, 255, 0.06); transform: scale(1.02); box-shadow: 0 0 0 3px rgba(67, 24, 255, 0.2); }
+    .score-card.active-B { border-color: var(--warning); filter: grayscale(0%); opacity: 1; background-color: rgba(255, 181, 71, 0.1); transform: scale(1.02); box-shadow: 0 0 0 3px rgba(255, 181, 71, 0.2); }
+    .score-card.active-C { border-color: #fd7e14; filter: grayscale(0%); opacity: 1; background-color: rgba(253, 126, 20, 0.08); transform: scale(1.02); box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.2); }
+    .score-card.active-D { border-color: var(--danger); filter: grayscale(0%); opacity: 1; background-color: rgba(227, 26, 26, 0.06); transform: scale(1.02); box-shadow: 0 0 0 3px rgba(227, 26, 26, 0.2); }
+
+    .emoji-text { font-size: 2.8rem; line-height: 1; margin-right: 15px; }
+    .score-letter { font-size: 2.5rem; font-weight: 900; margin-right: 15px; }
+    .status-badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+
+    .peer-sidebar-card { border: 1px solid var(--border-color); border-radius: var(--card-radius); box-shadow: var(--shadow-sm); background: var(--card-bg); }
+    .peer-empty-state { padding: 2.5rem 1rem; text-align: center; color: var(--secondary); }
+    .peer-empty-state i { font-size: 2.5rem; opacity: 0.4; }
+    .peer-welcome-card { min-height: 500px; border: 1px solid var(--border-color); border-radius: var(--card-radius); box-shadow: var(--shadow-sm); background: var(--card-bg); }
+</style>
+{% endblock %}
+
+{% block page_title %}<i class="fas fa-handshake me-2 text-primary"></i> Đánh Giá Khả Năng Phối Hợp (360°){% endblock %}
+{% block page_sub %}Chọn phòng ban, chọn đồng nghiệp và gửi đánh giá mức S / A / B / C / D.{% endblock %}
+
+{% block header_actions %}
+<span class="badge px-3 py-2 fw-bold" style="background: var(--input-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
+    <i class="fas fa-building me-1"></i> Khối: {{ current_division }}
+</span>
+<a href="/" class="btn btn-back"><i class="fas fa-home me-2"></i>Portal</a>
+{% endblock %}
 
 {% block content %}
-<style>
-    /* UI Nâng cấp */
-    .user-list-item { cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent; }
-    .user-list-item:hover { background-color: #f8f9fa; }
-    .user-list-item.active { background-color: #e3f2fd; border-left-color: #0d6efd; font-weight: bold; }
-    
-    .avatar-sm { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #e9ecef; }
-    .avatar-lg { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    
-    .score-card { 
-        cursor: pointer; transition: all 0.3s; border: 2px solid #e9ecef; border-radius: 12px; 
-        filter: grayscale(80%); opacity: 0.6; background: white;
-    }
-    .score-card:hover { filter: grayscale(0%); opacity: 1; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
-    
-    /* Trạng thái được chọn */
-    .score-card.active-S { border-color: #198754; filter: grayscale(0%); opacity: 1; background-color: #f0fdf4; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.2); }
-    .score-card.active-A { border-color: #0d6efd; filter: grayscale(0%); opacity: 1; background-color: #eff6ff; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2); }
-    .score-card.active-B { border-color: #ffc107; filter: grayscale(0%); opacity: 1; background-color: #fffbeb; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2); }
-    .score-card.active-C { border-color: #fd7e14; filter: grayscale(0%); opacity: 1; background-color: #fff7ed; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.2); }
-    .score-card.active-D { border-color: #dc3545; filter: grayscale(0%); opacity: 1; background-color: #fef2f2; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2); }
+<div class="peer-hero-strip">
+    <span class="hero-step"><strong>1</strong> Chọn phòng ban</span>
+    <span class="hero-dot">•</span>
+    <span class="hero-step"><strong>2</strong> Chọn đồng nghiệp</span>
+    <span class="hero-dot">•</span>
+    <span class="hero-step"><strong>3</strong> Chấm mức S / A / B / C / D và gửi</span>
+</div>
 
-    .emoji-img { width: 50px; height: 50px; margin-right: 15px; } /* Để dùng ảnh gif/icon tùy thích */
-    .emoji-text { font-size: 2.8rem; line-height: 1; margin-right: 15px; }
-    .score-letter { font-size: 2.5rem; font-weight: 900; margin-right: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-    
-    .status-badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
-</style>
-
-<div class="container-fluid mt-4 mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold mb-0"><i class="fas fa-handshake"></i> Đánh Giá Khả Năng Phối Hợp</h2>
-        <span class="badge bg-secondary fs-6 px-3 py-2"><i class="fas fa-building"></i> Khối: {{ current_division }}</span>
-    </div>
-
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h6 class="mb-2 text-dark fw-bold"><i class="fas fa-sitemap text-primary"></i> Lọc theo phòng ban</h6>
-                    <select id="deptSelect" class="form-select border-primary bg-light" onchange="loadUsers()">
-                        <option value="">-- Chọn bộ phận cần đánh giá --</option>
-                        {% for d in departments %}
-                        <option value="{{ d.Department }}">{{ d.Department }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush" id="userList" style="max-height: 600px; overflow-y: auto;">
-                        <li class="list-group-item text-center text-muted py-5">
-                            <i class="fas fa-users fa-3x mb-3 text-light"></i><br>
-                            Vui lòng chọn phòng ban.
-                        </li>
-                    </ul>
-                </div>
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="peer-sidebar-card h-100 overflow-hidden">
+            <div class="p-3 border-bottom" style="border-color: var(--border-color) !important;">
+                <h6 class="mb-2 fw-bold" style="color: var(--text-dark);"><i class="fas fa-sitemap text-primary me-2"></i>Lọc theo phòng ban</h6>
+                <select id="deptSelect" class="form-select" style="border-radius: 10px; border: 1px solid var(--border-color); background: var(--input-bg);" onchange="loadUsers()">
+                    <option value="">-- Chọn bộ phận cần đánh giá --</option>
+                    {% for d in departments %}
+                    <option value="{{ d.Department }}">{{ d.Department }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="p-0">
+                <ul class="list-group list-group-flush" id="userList" style="max-height: 600px; overflow-y: auto;">
+                    <li class="list-group-item peer-empty-state border-0">
+                        <i class="fas fa-users mb-2 d-block"></i>
+                        Vui lòng chọn phòng ban bên trên.
+                    </li>
+                </ul>
             </div>
         </div>
+    </div>
 
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 h-100" id="scoringArea" style="display: none;">
-                <div class="card-header border-0 py-4" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+    <div class="col-md-8">
+        <div class="card border-0 h-100 shadow-sm" id="scoringArea" style="display: none; border-radius: var(--card-radius); overflow: hidden;">
+            <div class="card-header border-0 py-4" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
                     <div class="d-flex align-items-center">
                         <img src="" id="evalTargetAvatar" class="avatar-lg me-3" alt="Avatar">
                         <div class="text-white">
@@ -75,7 +98,7 @@
                     </div>
                 </div>
                 
-                <div class="card-body p-4 bg-light">
+                <div class="card-body p-4" style="background: var(--input-bg);">
                     <div id="alreadyEvaluatedAlert" class="alert alert-success d-none shadow-sm mb-4">
                         <i class="fas fa-check-circle fs-5 me-2"></i> Bạn đã đánh giá nhân sự này mức <b><span id="txtOldScore"></span> điểm</b>. Bạn có thể chọn mức khác để cập nhật lại.
                     </div>
@@ -145,17 +168,18 @@
                     <input type="hidden" id="currentScore" value="">
                 </div>
                 
-                <div class="card-footer bg-white border-top p-3 text-end">
+                <div class="card-footer border-top p-3 text-end" style="background: var(--card-bg); border-color: var(--border-color) !important;">
                     <button class="btn btn-primary fw-bold px-5 rounded-pill shadow-sm" onclick="submitReview()">
                         <i class="fas fa-check-circle me-1"></i> GHI NHẬN ĐÁNH GIÁ
                     </button>
                 </div>
             </div>
 
-            <div id="welcomeArea" class="h-100 d-flex flex-column justify-content-center align-items-center text-muted bg-white rounded shadow-sm border" style="min-height: 500px;">
+            <div id="welcomeArea" class="peer-welcome-card d-flex flex-column justify-content-center align-items-center text-center">
                 <i class="fas fa-comments-dollar fa-5x mb-3 text-primary opacity-50"></i>
-                <h4 class="fw-bold">Hệ thống Đánh giá 360°</h4>
-                <p>Chọn một đồng nghiệp bên trái để gửi lời cảm ơn hoặc góp ý.</p>
+                <h4 class="fw-bold mb-2" style="color: var(--text-dark);">Hệ thống Đánh giá 360°</h4>
+                <p class="text-secondary mb-4">Chọn một đồng nghiệp bên trái để gửi lời cảm ơn hoặc góp ý.</p>
+                <a href="/" class="btn btn-outline-primary rounded-pill"><i class="fas fa-home me-2"></i>Về Portal</a>
             </div>
         </div>
     </div>
@@ -171,11 +195,11 @@
         const userList = document.getElementById('userList');
         
         if(!dept) {
-            userList.innerHTML = '<li class="list-group-item text-center text-muted py-5">Vui lòng chọn phòng ban</li>';
+            userList.innerHTML = '<li class="list-group-item peer-empty-state border-0"><i class="fas fa-users mb-2 d-block"></i>Vui lòng chọn phòng ban bên trên.</li>';
             return;
         }
 
-        userList.innerHTML = '<li class="list-group-item text-center py-5"><div class="spinner-border text-primary"></div></li>';
+        userList.innerHTML = '<li class="list-group-item text-center py-5 border-0"><div class="spinner-border text-primary"></div><div class="small text-secondary mt-2">Đang tải...</div></li>';
 
         fetch(`{{ url_for('kpi_evaluation_bp.get_users_by_dept') }}?dept=${encodeURIComponent(dept)}`)
             .then(res => res.json())
@@ -183,7 +207,7 @@
                 globalUsersData = data;
                 userList.innerHTML = '';
                 if(data.length === 0) {
-                    userList.innerHTML = '<li class="list-group-item text-center text-muted py-5">Không có nhân sự nào.</li>';
+                    userList.innerHTML = '<li class="list-group-item peer-empty-state border-0"><i class="fas fa-user-slash mb-2 d-block"></i>Không có nhân sự nào trong phòng ban này.</li>';
                     return;
                 }
                 

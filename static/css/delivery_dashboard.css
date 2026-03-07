@@ -1,0 +1,218 @@
+/**
+ * Delivery Dashboard - Điều phối Giao vận
+ * Styles tách từ template + ý tưởng đột phá (status strip, empty state, Kanban độ sâu)
+ */
+
+/* --- TAB NAVIGATION (pill style) --- */
+.delivery-tabs.nav-tabs {
+    border-bottom: 2px solid var(--border-color);
+    gap: 8px;
+    padding-bottom: 0;
+}
+.delivery-tabs .nav-link {
+    font-weight: 600;
+    color: var(--secondary);
+    border: 1px solid transparent;
+    border-radius: 12px 12px 0 0;
+    padding: 12px 20px;
+    background: transparent;
+    transition: all 0.2s;
+}
+.delivery-tabs .nav-link:hover {
+    color: var(--primary);
+    background: var(--input-bg);
+}
+.delivery-tabs .nav-link.active {
+    color: var(--primary);
+    background: var(--card-bg);
+    border-color: var(--border-color);
+    border-bottom-color: var(--card-bg);
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+}
+
+/* --- STATUS STRIP --- */
+.delivery-status-strip {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.delivery-status-strip .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+.delivery-status-strip .status-dot.pool { background: var(--secondary); }
+.delivery-status-strip .status-dot.urgent { background: var(--danger); }
+.delivery-status-strip .status-dot.week { background: var(--warning); }
+.delivery-status-strip .status-dot.done { background: var(--success); }
+
+/* --- KANBAN BOARD --- */
+.kanban-board-container {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    gap: 16px;
+    padding: 12px 0;
+    min-height: 78vh;
+    scroll-behavior: smooth;
+}
+.kanban-column {
+    flex-shrink: 0;
+    width: 280px;
+    background-color: var(--input-bg);
+    border-radius: 14px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 78vh;
+    border: 1px solid var(--border-color);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.kanban-column.column-urgent,
+.kanban-column.column-today {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-color);
+}
+.kanban-column.drag-over {
+    background-color: rgba(67, 24, 255, 0.06);
+    border: 2px dashed var(--primary);
+}
+
+.kanban-column-header {
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 14px 12px;
+    border-bottom: 2px solid transparent;
+    text-align: center;
+    color: white;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    flex-shrink: 0;
+}
+
+/* Column Colors */
+#POOL .kanban-column-header { background-color: var(--secondary); }
+#URGENT .kanban-column-header,
+.kanban-column.column-urgent .kanban-column-header { background-color: var(--danger); }
+#WITHIN_WEEK .kanban-column-header { background-color: var(--warning); color: #000; }
+#COMPLETED .kanban-column-header { background-color: var(--success); }
+
+#MONDAY .kanban-column-header, #TUESDAY .kanban-column-header,
+#WEDNESDAY .kanban-column-header, #THURSDAY .kanban-column-header,
+#FRIDAY .kanban-column-header, #SATURDAY .kanban-column-header {
+    background-color: var(--primary);
+}
+
+#col-hom-nay .kanban-column-header { background-color: var(--danger); }
+#col-sap-xep .kanban-column-header { background-color: var(--warning); color: #000; }
+#col-trong-tuan .kanban-column-header { background-color: var(--primary); }
+#col-da-giao .kanban-column-header { background-color: var(--success); }
+
+.task-list {
+    min-height: 120px;
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 12px;
+}
+.task-list:empty::after {
+    content: 'Thả đơn vào đây';
+    display: block;
+    text-align: center;
+    padding: 24px 12px;
+    color: var(--secondary);
+    font-size: 0.85rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    margin-top: 4px;
+    background: rgba(255,255,255,0.5);
+}
+.kanban-column.drag-over .task-list:empty::after {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(67, 24, 255, 0.04);
+}
+
+/* --- DELIVERY CARD --- */
+.delivery-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+    border-left: 5px solid var(--primary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    border-left-width: 5px;
+}
+.delivery-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+.delivery-card:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+    box-shadow: var(--shadow-sm);
+}
+.delivery-card.group-card { border-left-color: var(--success); background-color: rgba(5, 205, 153, 0.05); }
+.delivery-card.no-drag { cursor: not-allowed; opacity: 0.7; }
+.delivery-card.status-open { border-left-color: var(--secondary); }
+.delivery-card.status-dasoan { border-left-color: var(--warning); background-color: rgba(255, 181, 71, 0.05); }
+.delivery-card.status-dagiao { border-left-color: var(--success); background-color: rgba(5, 205, 153, 0.05); opacity: 0.85; }
+.delivery-card.overdue { border-left-color: var(--danger) !important; background-color: rgba(227, 26, 26, 0.06); }
+
+.item-title { font-weight: 700; font-size: 0.9rem; color: var(--text-dark); margin-bottom: 4px; display: block; }
+.item-customer { color: var(--primary); font-weight: 600; font-size: 0.85rem; }
+.item-details { font-size: 0.8rem; color: var(--secondary); margin-top: 4px; }
+
+/* DISPATCH VIEW */
+.dispatch-column-kho { flex-basis: 25%; flex-grow: 1; min-width: 260px; }
+
+/* --- SEARCH BAR (tab Kho) --- */
+.dispatch-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.dispatch-toolbar .form-control {
+    max-width: 320px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-dark);
+}
+
+/* --- MODAL --- */
+.modal-header { background-color: var(--input-bg); border-bottom: 1px solid var(--border-color); }
+.modal-title { color: var(--text-dark); font-weight: 700; }
+.modal-body, .modal-footer { background-color: var(--card-bg); color: var(--text-dark); }
+.btn-status-dasoan { background-color: var(--warning); color: #000; border: none; font-weight: 600; border-radius: 10px; }
+.btn-status-dagiao { background-color: var(--success); color: white; border: none; font-weight: 600; border-radius: 10px; }
+.form-control { background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-dark); }
+.form-control:focus { background-color: var(--card-bg); border-color: var(--primary); }
+
+/* --- MOBILE --- */
+@media (max-width: 992px) {
+    .kanban-board-container { flex-direction: column; overflow-x: hidden; height: auto; padding: 0; }
+    .kanban-column { width: 100%; max-width: 100%; margin-bottom: 16px; max-height: 380px; }
+    .delivery-tabs.nav-tabs { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; border-bottom: none; -webkit-overflow-scrolling: touch; }
+    .delivery-tabs .nav-link { border: 1px solid var(--border-color); border-radius: 20px; background: var(--card-bg); margin-bottom: 4px; }
+    .delivery-tabs .nav-link.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .delivery-status-strip { font-size: 0.8rem; gap: 10px; }
+}

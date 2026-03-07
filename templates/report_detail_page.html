@@ -179,6 +179,76 @@
         transform: translateY(-2px);
     }
 
+    /* TIMELINE */
+    .timeline-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        padding: 16px 16px 12px;
+        max-height: 420px;
+        overflow-y: auto;
+    }
+    .timeline-card h6 { font-size: 0.85rem; text-transform: uppercase; color: var(--secondary); margin-bottom: 8px; font-weight: 700; }
+    .timeline-item {
+        position: relative;
+        padding-left: 18px;
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+        color: var(--text-dark);
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 4px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--primary);
+    }
+    .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 10px;
+        width: 2px;
+        bottom: -4px;
+        background: rgba(148, 163, 184, 0.6);
+    }
+    .timeline-item:last-child::after { display: none; }
+    .timeline-date { font-size: 0.75rem; color: var(--secondary); display: block; }
+
+    /* INSIGHTS */
+    .insights-card {
+        padding: 18px 22px;
+        background: #fefce8;
+        border-radius: 16px;
+        border: 1px solid #facc15;
+        margin-bottom: 20px;
+    }
+    .insights-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .insights-status-healthy { background: rgba(22,163,74,0.08); color: #16a34a; border: 1px solid rgba(22,163,74,0.4); }
+    .insights-status-risk { background: rgba(220,38,38,0.08); color: #dc2626; border: 1px solid rgba(220,38,38,0.4); }
+    .insights-status-neutral { background: rgba(55,65,81,0.08); color: #4b5563; border: 1px solid rgba(55,65,81,0.4); }
+
+    .tldr-card {
+        padding: 16px 20px;
+        border-radius: 16px;
+        background: var(--card-bg);
+        border: 1px dashed var(--border-color);
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        color: var(--text-dark);
+    }
+
     /* RESPONSIVE */
     @media (max-width: 992px) {
         .info-grid { grid-template-columns: 1fr 1fr; }
@@ -190,6 +260,13 @@
         .card-header-modern { flex-direction: row; }
         .content-wrapper { padding: 20px; }
     }
+
+    @media print {
+        body { background: #fff; }
+        .page-header, .btn, .attachment-card, .timeline-card, .insights-card { display: none !important; }
+        .modern-card { box-shadow: none; border: none; }
+        .content-wrapper { padding: 0; }
+    }
 </style>
 {% endblock %}
 
@@ -197,9 +274,12 @@
 {% block page_sub %}Cập nhật lần cuối: {{ report['NGAY'] }}{% endblock %}
 
 {% block header_actions %}
-<a href="javascript:history.back()" class="btn btn-light border shadow-sm fw-bold">
+<a href="{{ url_for('crm_bp.dashboard_reports') }}" class="btn btn-light border shadow-sm fw-bold">
     <i class="fas fa-arrow-left me-2"></i>Quay lại
 </a>
+<button type="button" class="btn btn-outline-secondary ms-2 fw-bold" onclick="window.print()">
+    <i class="fas fa-print me-1"></i>In bản tường thuật
+</button>
 {% endblock %}
 
 {% block content %}
@@ -211,6 +291,11 @@
             <span>Thông Tin Chung</span>
         </div>
         <div class="info-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <a href="{{ url_for('crm_bp.dashboard_reports', kh_search=report['TEN DOI TUONG'] | default(report['KHACH HANG'])) }}" target="_blank" class="small text-primary text-decoration-none">
+                    <i class="fas fa-external-link-alt me-1"></i>Xem tất cả báo cáo KH này
+                </a>
+            </div>
             <div class="info-grid">
                 <div class="info-item">
                     <label>Ngày Báo Cáo</label>
@@ -244,6 +329,38 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {% set raw_purpose = (report['NOI DUNG 4'] or '') ~ ' ' ~ (report['NOI DUNG 5'] or '') %}
+    {% set upper_purpose = raw_purpose.upper() %}
+    {% set status_flag = 'NEUTRAL' %}
+    {% if 'RỦI RO' in upper_purpose or 'RISK' in upper_purpose or 'KHIẾU NẠI' in upper_purpose or 'COMPLAIN' in upper_purpose %}
+        {% set status_flag = 'RISK' %}
+    {% elif 'HEALTHY' in upper_purpose or 'ỔN ĐỊNH' in upper_purpose %}
+        {% set status_flag = 'HEALTHY' %}
+    {% endif %}
+
+    <div class="insights-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted text-uppercase small fw-bold"><i class="fas fa-lightbulb me-1 text-warning"></i>Insights</span>
+                <span class="insights-status 
+                    {% if status_flag == 'HEALTHY' %}insights-status-healthy{% elif status_flag == 'RISK' %}insights-status-risk{% else %}insights-status-neutral{% endif %}">
+                    Tình trạng: 
+                    {% if status_flag == 'HEALTHY' %}HEALTHY{% elif status_flag == 'RISK' %}RISK{% else %}NEUTRAL{% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="small text-muted mb-1">Gợi ý bước tiếp theo:</div>
+        <div class="fw-semibold" style="font-size: 0.9rem;">
+            {{ report['DANH GIA 4'] or report['DANH GIA 2'] or 'Tiếp tục chăm sóc định kỳ và ghi nhận thêm phản hồi trong lần gặp tới.' }}
+        </div>
+    </div>
+
+    <div class="tldr-card">
+        <strong>TL;DR:</strong>
+        Gặp {{ report['TEN DOI TUONG'] | default(report['KHACH HANG']) }} vào ngày {{ report['NGAY'] }} với mục đích
+        “{{ report['NOI DUNG 4'] or '...' }}”, kết quả “{{ report['NOI DUNG 5'] or '...' }}” và kế hoạch “{{ report['DANH GIA 4'] or report['DANH GIA 2'] or '...' }}”.
     </div>
 
     {% if not (report['STT'] is defined and report['STT'] < 51799) %}

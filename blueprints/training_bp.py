@@ -133,6 +133,14 @@ def get_game_status():
     status = current_app.training_service.get_current_challenge_status(user_code)
     return jsonify(status)
 
+@training_bp.route('/api/training/daily_challenge/history', methods=['GET'])
+@login_required
+def api_daily_challenge_history():
+    """API lịch sử tham gia Thử thách mỗi ngày (Nhật ký hoạt động)."""
+    user_code = session.get('user_code')
+    history = current_app.training_service.get_daily_challenge_history(user_code)
+    return jsonify({'success': True, 'history': history})
+
 @training_bp.route('/api/challenge/submit', methods=['POST'])
 @login_required
 def submit_game_answer():
@@ -180,7 +188,7 @@ def category_detail_page(category_name):
     # 1. Decode tên category từ URL (VD: Kỹ%20thuật -> Kỹ thuật)
     try:
         cat_decoded = urllib.parse.unquote(category_name)
-    except:
+    except Exception:
         cat_decoded = category_name
 
     # 2. Lấy dữ liệu từ Service

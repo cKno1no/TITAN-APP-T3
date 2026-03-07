@@ -66,6 +66,14 @@
     .module-title-crm { color: #34A853; } .module-title-kpi { color: #DB4437; } .module-title-ceq { color: #F4B400; }
     
     .menu-link.planned { color: var(--secondary); opacity: 0.6; cursor: not-allowed; background-color: var(--input-bg); }
+
+    .index-hero-strip {
+        display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px;
+        padding: 12px 20px; margin-bottom: 28px; border-radius: 14px;
+        background: var(--input-bg); border: 1px solid var(--border-color); font-size: 0.95rem;
+        color: var(--secondary);
+    }
+    .index-hero-strip i { color: var(--primary); margin-right: 6px; }
     
     .page-header { display: none !important; }
     .container-fluid { padding: 0 !important; } 
@@ -104,10 +112,14 @@
 
         <h1 class="portal-title text-center"><i class="fas fa-sitemap me-3"></i> PORTAL ĐIỀU HÀNH</h1>
         
-        <p class="text-center mb-5" style="color: var(--text-dark); font-size: 1.1rem;">
+        <p class="text-center mb-3" style="color: var(--text-dark); font-size: 1.1rem;">
             Chào mừng, <strong style="color: var(--primary);">{{ user_context.shortname }}</strong> ({{ user_context.usercode }}) 
-            - Bộ phận: <span class="badge bg-secondary">{{ user_context.bo_phan }}</span>
+            — Bộ phận: <span class="badge" style="background: var(--input-bg); color: var(--text-dark); border: 1px solid var(--border-color);">{{ user_context.bo_phan }}</span>
         </p>
+        <div class="index-hero-strip">
+            <i class="fas fa-compass"></i>
+            <span>Chọn một mục trong danh sách để truy cập chức năng.</span>
+        </div>
 
         <div class="accordion" id="mainAccordion">
             <div class="accordion-item">

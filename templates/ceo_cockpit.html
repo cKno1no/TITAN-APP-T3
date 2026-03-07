@@ -4,73 +4,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
-<style>
-    /* Font đặc thù cho Dashboard CEO */
-    h1, h2, h3, h4, h5, h6 { font-family: 'Plus Jakarta Sans', sans-serif; }
-
-    /* --- CARDS & LOADING SKELETON --- */
-    .card-box {
-        background: var(--card-bg); 
-        border-radius: 20px;
-        padding: 24px;
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow-md);
-        height: 100%;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        display: block;
-        text-decoration: none;
-        color: inherit;
-    }
-    .card-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
-        border-color: var(--primary);
-        cursor: pointer;
-    }
-
-    /* Scorecard Styles */
-    .score-label { color: var(--secondary); font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .score-value { color: var(--text-dark); font-size: 1.8rem; font-weight: 800; line-height: 1.1; margin-bottom: 8px; }
-    
-    .trend-badge { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; }
-    .bg-trend-up { background-color: rgba(5, 205, 153, 0.15); color: var(--success); }
-    .bg-trend-down { background-color: rgba(227, 26, 26, 0.1); color: var(--danger); }
-    .bg-trend-warn { background-color: rgba(255, 181, 71, 0.15); color: #B71C1C; }
-
-    /* Gradient Card (Profit) */
-    .card-gradient { background: linear-gradient(135deg, #4318FF 0%, #7B61FF 100%); color: white !important; border: none; }
-    .card-gradient .score-label { color: rgba(255,255,255,0.8) !important; }
-    .card-gradient .score-value { color: white !important; }
-    .card-gradient .trend-badge { background-color: rgba(255,255,255,0.2); color: white; }
-
-    /* Icon Box */
-    .icon-box { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
-    .ib-primary { background-color: var(--input-bg); color: var(--primary); }
-    .ib-warning { background-color: rgba(255, 181, 71, 0.15); color: var(--warning); }
-    .ib-danger { background-color: rgba(227, 26, 26, 0.1); color: var(--danger); }
-    .ib-success { background-color: rgba(5, 205, 153, 0.15); color: var(--success); }
-    .ib-info { background-color: rgba(51, 204, 255, 0.15); color: var(--info); }
-
-    /* Leaderboard & Action */
-    .table-leaderboard th { color: var(--secondary); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid var(--border-color); background: transparent; }
-    .table-leaderboard td { padding: 15px 10px; vertical-align: middle; color: var(--text-dark); font-weight: 600; border-bottom: 1px solid var(--border-color); background: transparent; }
-    .avatar-circle { width: 32px; height: 32px; background-color: var(--input-bg); border-radius: 50%; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; margin-right: 10px; }
-    
-    /* LOADING SPINNER & SKELETON */
-    .chart-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 320px; color: var(--secondary); }
-    .modal-header { padding: 20px 25px; }
-    .modal-body { padding: 25px; }
-    
-    .skeleton-text {
-        display: inline-block; height: 1em; width: 100%;
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%; animation: skeleton-loading 1.5s infinite;
-        border-radius: 4px; opacity: 0.5;
-    }
-    @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ceo_cockpit.css') }}">
 {% endblock %}
 
 {% block header %}
@@ -119,7 +53,7 @@
 {% endblock %}
 
 {% block content %}
-    <div x-data="ceoDashboard()" x-init="initDashboard()">
+    <div class="ceo-cockpit" x-data="ceoDashboard()" x-init="initDashboard()">
 
         <div class="row g-4 mb-4">
             <div class="col-xl-3 col-md-6">
@@ -259,7 +193,13 @@
                         <a href="/inventory_aging" target="_blank" class="btn btn-sm fw-bold" style="background: var(--input-bg); color: var(--danger); border: 1px solid var(--border-color);"><i class="fas fa-warehouse"></i> Full</a>
                     </div>
                     <div id="inventoryChart" style="min-height: 320px;" class="d-flex align-items-center justify-content-center">
-                        <div x-show="loading" class="spinner-border text-primary"></div>
+                        <div x-show="loading" class="spinner-border text-primary" role="status"></div>
+                        <div x-show="!loading && loadError" class="chart-empty-state">
+                            <i class="fas fa-exclamation-triangle text-warning"></i>
+                            <p class="mb-2">Không tải được dữ liệu.</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @click="initDashboard()"><i class="fas fa-sync-alt me-1"></i> Thử lại</button>
+                        </div>
+                        <div x-show="!loading && !loadError && !hasInventoryChart" class="chart-empty-state"><i class="fas fa-warehouse"></i><p class="mb-0">Chưa có dữ liệu tồn kho.</p></div>
                     </div>
                     <div class="text-center mt-2 small text-muted">*Dữ liệu từ bảng Cache (Job chạy 12H/lần).</div>
                 </div>
@@ -271,7 +211,8 @@
                         <h5 class="fw-bold m-0" style="color: var(--text-dark);">Hiệu quả Kinh doanh Top 10 Nhóm hàng</h5>
                     </div>
                     <div id="categoryChart" style="min-height: 320px;" class="d-flex align-items-center justify-content-center">
-                        <div x-show="loading" class="spinner-border text-primary"></div>
+                        <div x-show="loading" class="spinner-border text-primary" role="status"></div>
+                        <div x-show="!loading && !loadError && !hasCategoryChart" class="chart-empty-state"><i class="fas fa-chart-bar"></i><p class="mb-0">Chưa có dữ liệu nhóm hàng.</p></div>
                     </div>
                 </div>
             </div>
@@ -282,7 +223,8 @@
                 <div class="card-box">
                     <h5 class="fw-bold m-0 mb-4" style="color: var(--text-dark);">Xu hướng Tài chính (12 Tháng)</h5>
                     <div id="financialTrendChart" style="min-height: 350px;" class="d-flex align-items-center justify-content-center">
-                        <div x-show="loading" class="spinner-border text-primary"></div>
+                        <div x-show="loading" class="spinner-border text-primary" role="status"></div>
+                        <div x-show="!loading && !loadError && !hasFinancialChart" class="chart-empty-state"><i class="fas fa-chart-line"></i><p class="mb-0">Chưa có dữ liệu xu hướng.</p></div>
                     </div>
                 </div>
             </div>
@@ -290,7 +232,8 @@
                 <div class="card-box">
                     <h5 class="fw-bold m-0 mb-4" style="color: var(--text-dark);">Phễu Chuyển đổi</h5>
                     <div id="funnelChart" style="min-height: 350px;" class="d-flex align-items-center justify-content-center">
-                        <div x-show="loading" class="spinner-border text-primary"></div>
+                        <div x-show="loading" class="spinner-border text-primary" role="status"></div>
+                        <div x-show="!loading && !loadError && !hasFunnelChart" class="chart-empty-state"><i class="fas fa-filter"></i><p class="mb-0">Chưa có dữ liệu phễu.</p></div>
                     </div>
                 </div>
             </div>
@@ -352,6 +295,11 @@
     function ceoDashboard() {
         return {
             loading: true,
+            loadError: false,
+            hasInventoryChart: false,
+            hasCategoryChart: false,
+            hasFinancialChart: false,
+            hasFunnelChart: false,
             data: { 
                 kpi: {}, 
                 profit_summary: {}, 
@@ -363,29 +311,43 @@
             inventoryModal: null,
 
             initDashboard() {
-                // Gọi API lấy dữ liệu bất đồng bộ
+                this.loadError = false;
+                this.loading = true;
                 fetch('/api/executive/dashboard_data')
-                    .then(r => r.json())
+                    .then(r => {
+                        if (!r.ok) return Promise.reject(new Error('Máy chủ phản hồi lỗi.'));
+                        return r.json();
+                    })
                     .then(res => {
-                        if(res.success) {
+                        if (res.success) {
                             this.data = res.data;
                             this.loading = false;
-                            
-                            // Đợi DOM cập nhật rồi vẽ chart
-                            setTimeout(() => {
-                                this.renderCharts(res.data.charts);
-                            }, 50);
+                            setTimeout(() => this.renderCharts(res.data.charts || {}), 50);
                         } else {
-                            console.error("API Error:", res.message);
+                            this.loading = false;
+                            this.loadError = true;
+                            var self = this;
+                            if (window.Swal) {
+                                window.Swal.fire({ icon: 'error', title: 'Lỗi tải dữ liệu', text: res.message || 'Không lấy được dữ liệu Cockpit.', confirmButtonText: 'Thử lại' }).then(function(r) { if (r.isConfirmed) self.initDashboard(); });
+                            } else { alert(res.message || 'Lỗi tải dữ liệu.'); }
                         }
                     })
                     .catch(err => {
-                        console.error("Network Error:", err);
                         this.loading = false;
+                        this.loadError = true;
+                        var self = this;
+                        if (window.Swal) {
+                            window.Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: (err && err.message) ? err.message : 'Không thể kết nối. Vui lòng thử lại.', confirmButtonText: 'Thử lại' }).then(function(r) { if (r.isConfirmed) self.initDashboard(); });
+                        } else { alert('Lỗi kết nối. Vui lòng thử lại.'); }
                     });
             },
 
             renderCharts(charts) {
+                this.hasInventoryChart = !!(charts.inventory && charts.inventory.series && charts.inventory.series.length > 0);
+                this.hasCategoryChart = !!(charts.category && charts.category.revenue && charts.category.revenue.length);
+                this.hasFinancialChart = !!(charts.financial && charts.financial.revenue && charts.financial.revenue.length);
+                this.hasFunnelChart = !!(charts.funnel && charts.funnel.quotes && charts.funnel.quotes.length);
+
                 // 1. Inventory Chart
                 if(charts.inventory && charts.inventory.series && charts.inventory.series.length > 0) {
                     document.getElementById('inventoryChart').innerHTML = '';
@@ -413,7 +375,7 @@
                 }
 
                 // 2. Category Chart
-                if(charts.category && charts.category.revenue) {
+                if(this.hasCategoryChart) {
                     document.getElementById('categoryChart').innerHTML = '';
                     new ApexCharts(document.querySelector("#categoryChart"), {
                         series: [
@@ -435,7 +397,7 @@
                 }
 
                 // 3. Financial Trend
-                if(charts.financial && charts.financial.revenue) {
+                if(this.hasFinancialChart) {
                     document.getElementById('financialTrendChart').innerHTML = '';
                     new ApexCharts(document.querySelector("#financialTrendChart"), {
                         series: [
@@ -453,7 +415,7 @@
                 }
 
                 // 4. Funnel Chart
-                if(charts.funnel && charts.funnel.quotes) {
+                if(this.hasFunnelChart) {
                     document.getElementById('funnelChart').innerHTML = '';
                     new ApexCharts(document.querySelector("#funnelChart"), {
                         series: [

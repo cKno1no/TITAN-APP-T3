@@ -1,674 +1,1495 @@
 {% extends "base.html" %}
+{% block title %}Titan OS — Quản lý Đầu việc{% endblock %}
 
-{% block title %}Quản lý Đầu việc | Titan OS{% endblock %}
+{# Giữ header của base.html nhưng ẩn page-title — task_dashboard có topbar riêng #}
+{% block header %}{{ super() }}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/task_dashboard.css') }}">
 <style>
-    /* --- KPI TILES --- */
-    .kpi-tile { 
-        text-align: center; padding: 20px; border-radius: 20px; 
-        color: white; font-weight: 700; box-shadow: var(--shadow-sm);
-        cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
-    }
-    .kpi-tile:hover { opacity: 0.9; transform: translateY(-3px); box-shadow: var(--shadow-md); }
-    .kpi-value { font-size: 2rem; display: block; }
-    .kpi-label { font-size: 0.85rem; opacity: 0.9; text-transform: uppercase; }
-    
-    /* KPI Colors */
-    .bg-total { background-color: var(--secondary); }
-    .bg-completed { background-color: var(--success); } 
-    .bg-pending { background-color: var(--warning); color: #000; } 
-    .bg-help { background-color: var(--danger); } 
-    .kpi-active { border: 3px solid var(--primary); box-shadow: 0 0 15px rgba(67, 24, 255, 0.3); }
+/* ════════════════════════════════════════════════════════════
+   BASE.HTML COMPATIBILITY FIXES
+   ════════════════════════════════════════════════════════════ */
 
-    /* --- KANBAN BOARD --- */
-    .kanban-container { 
-        display: flex; gap: 15px; min-height: 400px; padding-bottom: 10px;
-    }
-    .kanban-column {
-        flex-basis: 25%; min-width: 250px;
-        background-color: var(--input-bg);
-        border-radius: 12px; padding: 10px; display: flex;
-        flex-direction: column; max-height: 70vh; border: 1px solid var(--border-color);
-    }
-    .kanban-column-header {
-        font-weight: 700; font-size: 0.95rem;
-        padding: 8px; margin-bottom: 10px;
-        border-bottom: 2px solid var(--border-color);
-        text-align: center; color: var(--secondary); text-transform: uppercase;
-    }
-    .task-list { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
-    
-    /* Task Card */
-    .task-card {
-        background-color: var(--card-bg); border-radius: 12px;
-        padding: 12px; margin-bottom: 10px;
-        box-shadow: var(--shadow-sm);
-        border-left: 5px solid var(--primary); 
-        font-size: 0.85rem; line-height: 1.4;
-        position: relative; color: var(--text-dark);
-        border: 1px solid var(--border-color); border-left-width: 5px;
-        transition: transform 0.2s;
-    }
-    .task-card:hover { box-shadow: var(--shadow-md); cursor: pointer; border-color: var(--primary); transform: scale(1.02); z-index: 5; }
-    
-    .task-card.priority-high { border-left-color: var(--danger); background-color: rgba(227, 26, 26, 0.05); }
-    .task-card.priority-alert { border-left-color: var(--warning); }
-    
-    .new-update-marker {
-        position: absolute; top: 8px; right: 8px; 
-        width: 10px; height: 10px; background-color: var(--danger);
-        border-radius: 50%; box-shadow: 0 0 5px rgba(227, 26, 26, 0.5);
-    }
+/* 1. Ẩn sidebar mặc định, giữ lại global header (mail, theme, về trang chủ) */
+#sidebar, .sidebar-wrapper, nav.sidebar { display: none !important; }
+#main-content { padding: 0 !important; margin: 0 !important; }
+.container-fluid { padding: 0 !important; }
 
-    /* --- HISTORY TABLE --- */
-    .table-task th { 
-        background-color: var(--input-bg) !important; color: var(--secondary) !important;
-        font-weight: 600; font-size: 0.85rem; text-transform: uppercase;
-        border-bottom: 1px solid var(--border-color); white-space: nowrap;
-    }
-    .table-task td { font-size: 0.9rem; color: var(--text-dark); border-bottom: 1px solid var(--border-color); vertical-align: middle; }
-    .table-task tbody tr:hover td { background-color: var(--input-bg); }
-    
-    .truncate-content {
-        max-width: 350px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+/* 2. Fix modal — Bootstrap modal phải nằm trên tất cả */
+.modal-backdrop { z-index: 1040 !important; }
+.modal          { z-index: 1050 !important; }
+.modal-dialog   { z-index: 1060 !important; }
 
-    /* Help Call UI */
-    .help-call-display {
-        display: none; align-items: center; justify-content: center;
-        background-color: rgba(255, 181, 71, 0.1); border: 2px dashed var(--warning);
-        color: var(--danger); border-radius: 12px; height: 48px; font-weight: 700; width: 100%;
-        animation: flash-border 2s infinite;
-    }
-    @keyframes flash-border { 0%, 100% { border-color: var(--warning); } 50% { border-color: var(--danger); } }
+/* 3. Đảm bảo body không bị overflow hidden khi modal mở */
+body.modal-open { overflow: hidden !important; padding-right: 0 !important; }
 
-    /* Modal Styles Override */
-    .modal-content { background-color: var(--card-bg); border-radius: 16px; border: none; }
-    .modal-header { border-bottom: 1px solid var(--border-color); }
-    .modal-footer { border-top: 1px solid var(--border-color); }
-    .form-control, .form-select { background-color: var(--input-bg); color: var(--text-dark); border: 1px solid var(--border-color); }
-    .form-control:focus { background-color: var(--card-bg); }
+/* ════════════════════════════════════════════════════════════
+   TITAN OS · TASK COMMAND — LIGHT EDITION v4 (Flask Template)
+   Font   : "Segoe UI" → system-ui → -apple-system
+   Palette: #EFF1F5 warm bg · #4F46E5 indigo accent
+   ════════════════════════════════════════════════════════════ */
+:root{
+  --font:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --bg:#EFF1F5;--surface:#FFFFFF;--s2:#F7F8FA;--s3:#ECEEF2;--hover:#F2F4F8;
+  --border:#E2E5EC;--bm:#C8CDD9;--bd:#9EA8BE;
+  --indigo:#4F46E5;--indigo2:#6366F1;--id:rgba(79,70,229,.08);--ig:rgba(79,70,229,.22);
+  --green:#15803D;--green2:#22C55E;--gd:rgba(21,128,61,.08);--gb:rgba(21,128,61,.22);
+  --amber:#B45309;--amber2:#F59E0B;--ad:rgba(180,83,9,.08);--ab:rgba(180,83,9,.22);
+  --red:#B91C1C;--red2:#EF4444;--rd:rgba(185,28,28,.07);--rb:rgba(185,28,28,.20);
+  --violet:#6D28D9;--vd:rgba(109,40,217,.08);--vb:rgba(109,40,217,.20);
+  --slate:#475569;--sld:rgba(71,85,105,.08);
+  --text:#111827;--tm:#374151;--ts:#6B7280;--tl:#9CA3AF;
+  --xs:0 1px 2px rgba(0,0,0,.05);
+  --sm:0 2px 8px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --md:0 4px 16px rgba(0,0,0,.09),0 2px 4px rgba(0,0,0,.04);
+  --lg:0 8px 32px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.05);
+  --si:0 4px 14px rgba(79,70,229,.28);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(0,0,0,.032) 1px,transparent 1px);background-size:22px 22px}
+body::after{content:'';position:fixed;top:-100px;right:-100px;width:500px;height:500px;pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(79,70,229,.055) 0%,transparent 65%)}
+body>*{position:relative;z-index:1}
 
-    /* Search Dropdown */
-    #create_kh_search_results { 
-        position: absolute; width: 100%; z-index: 1050; 
-        background-color: var(--card-bg); border: 1px solid var(--primary);
-        border-radius: 8px; max-height: 200px; overflow-y: auto;
-    }
+/* ── TOPBAR ── */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:var(--xs);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:500}
+.logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--indigo);letter-spacing:-.02em;text-decoration:none;flex-shrink:0}
+.logo-gem{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--indigo) 0%,var(--indigo2) 100%);box-shadow:0 2px 8px var(--ig);display:grid;place-items:center}
+.logo-gem svg{width:13px;height:13px}
+.tb-sep{width:1px;height:18px;background:var(--bm);flex-shrink:0}
+.tb-mod{font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.08em;text-transform:uppercase}
+.tb-sp{flex:1}
+.tb-r{display:flex;align-items:center;gap:9px}
+.chip-live{display:flex;align-items:center;gap:5px;background:var(--gd);border:1px solid var(--gb);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--green)}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green2);box-shadow:0 0 0 2px rgba(34,197,94,.25);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 2px rgba(34,197,94,.25)}50%{opacity:.5;box-shadow:0 0 0 4px rgba(34,197,94,.06)}}
+.clock-badge{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:12.5px;font-weight:600;color:var(--tm);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--indigo) 0%,var(--indigo2) 100%);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:#fff;box-shadow:var(--si);cursor:pointer;transition:transform .13s}
+.avatar:hover{transform:scale(1.06)}
 
-    /* --- TIMELINE CUSTOM STYLES (NEW) --- */
-    .timeline-item { position: relative; padding-bottom: 1.5rem; }
-    .timeline-item:last-child { padding-bottom: 0; }
-    .timeline-marker { position: absolute; left: -1.25rem; top: 0.25rem; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: var(--primary); border: 2px solid white; }
+/* ── SHELL ── */
+.td-shell{display:grid;grid-template-columns:244px 1fr;min-height:calc(100vh - 52px)}
 
-    /* Mobile Responsive */
-    @media (max-width: 992px) {
-        .col-6 { width: 50%; padding: 5px; }
-        .kpi-tile { padding: 15px; min-height: 100px; margin-bottom: 0; }
-        .kpi-value { font-size: 1.5rem; }
-        .kpi-label { font-size: 0.7rem; }
-        
-        .kanban-container { flex-direction: column; height: auto; padding: 0; }
-        .kanban-column { width: 100%; margin-bottom: 20px; max-height: 400px; }
-        
-        .table-responsive { overflow-x: auto; }
-        .truncate-content { white-space: normal; min-width: 200px; }
-    }
+/* ── SIDEBAR ── */
+.td-sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;box-shadow:2px 0 8px rgba(0,0,0,.03)}
+.sb-user{padding:2px 16px 18px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.sb-code{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--indigo);margin-bottom:4px}
+.sb-name{font-size:15.5px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:2px}
+.sb-role{font-size:11.5px;color:var(--ts)}
+.kpi-list{padding:0 10px;display:flex;flex-direction:column;gap:3px}
+.kpi-row{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;border:1px solid transparent;cursor:pointer;transition:all .12s}
+.kpi-row:hover{background:var(--hover);border-color:var(--border)}
+.kpi-row.sel{background:var(--id);border-color:rgba(79,70,229,.2)}
+.kpi-lhs{display:flex;align-items:center;gap:9px}
+.kpi-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.kpi-row.r-all  .kpi-ico{background:var(--sld)}
+.kpi-row.r-done .kpi-ico{background:var(--gd)}
+.kpi-row.r-wip  .kpi-ico{background:var(--id)}
+.kpi-row.r-rcvd .kpi-ico{background:var(--ad)}
+.kpi-row.r-help .kpi-ico{background:var(--rd)}
+.kpi-lbl{font-size:12.5px;font-weight:500;color:var(--tm)}
+.kpi-row.sel .kpi-lbl{color:var(--indigo);font-weight:600}
+.kpi-rhs{display:flex;align-items:center;gap:6px}
+.kpi-val{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.kpi-row.r-done .kpi-val{color:var(--green)}
+.kpi-row.r-help .kpi-val{color:var(--red)}
+.kpi-row.r-rcvd .kpi-val{color:var(--amber)}
+.kpi-row.sel    .kpi-val{color:var(--indigo)}
+.kpi-pill{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:5px}
+.p-up{background:var(--gd);color:var(--green)}
+.p-new{background:var(--ad);color:var(--amber)}
+.p-bad{background:var(--rd);color:var(--red)}
+.cmp-block{margin:14px 10px 0;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.cmp-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tl);margin-bottom:12px}
+.cmp-body{display:flex;align-items:center;gap:14px}
+.ring-wrap{position:relative;width:64px;height:64px;flex-shrink:0}
+.ring-wrap svg{display:block}
+.ring-track{fill:none;stroke:var(--s3);stroke-width:5}
+.ring-fill{fill:none;stroke:var(--green2);stroke-width:5;stroke-linecap:round;stroke-dasharray:163.4;transform:rotate(-90deg);transform-origin:32px 32px;filter:drop-shadow(0 0 4px rgba(34,197,94,.3));transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)}
+.ring-ctr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--green)}
+.cmp-pct{font-size:26px;font-weight:800;color:var(--text);line-height:1}
+.cmp-sub{font-size:11px;color:var(--ts);margin-top:2px}
+.cmp-bar{margin-top:10px;height:4px;background:var(--s3);border-radius:4px;overflow:hidden}
+.cmp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green) 0%,var(--green2) 100%);transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+/* ── MAIN ── */
+.td-main{padding:20px 22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-lbl{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ts)}
+.sec-dot{width:7px;height:7px;border-radius:50%;background:var(--indigo);flex-shrink:0}
+.td-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .12s;white-space:nowrap}
+.td-btn-primary{background:var(--indigo);color:#fff;box-shadow:0 2px 8px var(--ig)}
+.td-btn-primary:hover{background:#4338CA;transform:translateY(-1px);box-shadow:var(--si)}
+.td-btn-amber{background:var(--amber);color:#fff}
+.td-btn-amber:hover{background:#D97706;transform:translateY(-1px);box-shadow:0 4px 12px rgba(180,83,9,.22)}
+.td-btn-ghost{background:var(--surface);color:var(--tm);border:1px solid var(--bm)}
+.td-btn-ghost:hover{border-color:var(--indigo);color:var(--indigo);background:var(--id)}
+.td-btn-soft-red{background:var(--rd);color:var(--red);border:1px solid var(--rb)}
+.td-btn-soft-red:hover{background:rgba(185,28,28,.12);transform:translateY(-1px)}
+.act-bar{display:flex;align-items:center;gap:7px}
+
+/* ── ALERT STRIP ── */
+.alert-strip{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(180,83,9,.06) 0%,rgba(245,158,11,.03) 100%);border:1px solid var(--ab);border-radius:12px;padding:12px 16px;box-shadow:0 2px 10px rgba(180,83,9,.07);animation:strip-breathe 4s ease-in-out infinite}
+@keyframes strip-breathe{0%,100%{box-shadow:0 2px 10px rgba(180,83,9,.07)}50%{box-shadow:0 4px 20px rgba(180,83,9,.13)}}
+.strip-ico{width:38px;height:38px;flex-shrink:0;background:var(--ad);border:1px solid var(--ab);border-radius:10px;display:grid;place-items:center;font-size:18px}
+.strip-body{flex:1;min-width:0}
+.strip-title{font-size:13px;font-weight:700;color:var(--amber);margin-bottom:2px}
+.strip-sub{font-size:11.5px;color:var(--ts);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip-sub strong{color:var(--tm);font-weight:600}
+
+/* ── KANBAN ── */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;min-height:340px}
+.k-col{background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--xs);transition:border-color .15s,box-shadow .15s}
+.k-col:hover{border-color:var(--bm);box-shadow:var(--sm)}
+.k-stripe{height:3px;flex-shrink:0;border-radius:12px 12px 0 0}
+.col-rcvd  .k-stripe{background:var(--amber2)}
+.col-open  .k-stripe{background:var(--bd)}
+.col-wip   .k-stripe{background:var(--indigo)}
+.col-stuck .k-stripe{background:var(--red2)}
+.col-done  .k-stripe{background:var(--green2)}
+.k-head{padding:9px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.k-name{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.col-rcvd  .k-name{color:var(--amber)}
+.col-open  .k-name{color:var(--slate)}
+.col-wip   .k-name{color:var(--indigo)}
+.col-stuck .k-name{color:var(--red)}
+.col-done  .k-name{color:var(--green)}
+.k-cnt{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.col-rcvd  .k-cnt{background:var(--ad);color:var(--amber);border:1px solid var(--ab)}
+.col-open  .k-cnt{background:var(--sld);color:var(--slate);border:1px solid rgba(71,85,105,.18)}
+.col-wip   .k-cnt{background:var(--id);color:var(--indigo);border:1px solid rgba(79,70,229,.2)}
+.col-stuck .k-cnt{background:var(--rd);color:var(--red);border:1px solid var(--rb)}
+.col-done  .k-cnt{background:var(--gd);color:var(--green);border:1px solid var(--gb)}
+.k-body{flex:1;overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--bm) transparent}
+.td-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 12px;cursor:pointer;position:relative;overflow:hidden;box-shadow:var(--xs);transition:all .13s ease;animation:card-in .22s ease both}
+@keyframes card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.td-card:hover{border-color:var(--bm);transform:translateY(-2px);box-shadow:var(--md)}
+.td-card::after{content:'';position:absolute;top:0;left:12px;right:12px;height:2px;border-radius:0 0 2px 2px;background:var(--indigo2);opacity:0;transition:opacity .13s}
+.td-card:hover::after{opacity:1}
+.c-bar{position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--indigo2)}
+.td-card.s-assigned .c-bar{background:var(--amber2)}
+.td-card.s-blocked  .c-bar{background:var(--red2);box-shadow:0 0 6px rgba(239,68,68,.3)}
+.td-card.s-waiting  .c-bar{background:var(--violet)}
+.td-card.s-done     .c-bar{background:var(--green2)}
+.td-card.s-assigned{background:linear-gradient(to bottom right,rgba(180,83,9,.04),var(--surface));border-color:rgba(180,83,9,.16)}
+.td-card.s-blocked {background:linear-gradient(to bottom right,rgba(185,28,28,.04),var(--surface));border-color:rgba(185,28,28,.16)}
+.td-card.s-waiting {background:linear-gradient(to bottom right,rgba(109,40,217,.04),var(--surface));border-color:rgba(109,40,217,.16)}
+.td-card.s-done{opacity:.7}
+.c-id  {font-size:10px;font-weight:600;color:var(--tl);margin-bottom:2px}
+.c-from{font-size:10.5px;font-weight:600;color:var(--amber);margin-bottom:4px}
+.c-title{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c-foot{display:flex;align-items:center;justify-content:space-between;gap:5px}
+.c-tags{display:flex;gap:4px;flex-wrap:wrap}
+.c-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px}
+.t-sales   {background:rgba(59,130,246,.09);color:#1D4ED8}
+.t-internal{background:var(--sld);color:var(--slate)}
+.t-waiting {background:var(--vd);color:var(--violet)}
+.c-prog{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.mbar{width:36px;height:3px;background:var(--s3);border-radius:3px;overflow:hidden}
+.mfill{height:100%;border-radius:3px;background:var(--indigo2);transition:width .5s}
+.td-card.s-blocked .mfill{background:var(--red2)}
+.td-card.s-waiting .mfill{background:var(--violet)}
+.td-card.s-done    .mfill{background:var(--green2)}
+.pct{font-size:10px;font-weight:600;color:var(--ts)}
+.pip{position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--red2);border:2px solid var(--surface);box-shadow:0 0 0 2px rgba(185,28,28,.15);animation:pip-blink 2s ease-in-out infinite}
+.pip.violet{background:var(--violet);box-shadow:0 0 0 2px rgba(109,40,217,.15)}
+@keyframes pip-blink{0%,100%{opacity:1}50%{opacity:.4}}
+.due{font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px}
+.due-ok  {background:var(--s3);color:var(--ts)}
+.due-soon{background:var(--ad);color:var(--amber)}
+.due-over{background:var(--rd);color:var(--red)}
+.col-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:8px;text-align:center}
+.col-empty-ico{width:36px;height:36px;border-radius:10px;background:var(--s2);border:1.5px dashed var(--bm);display:grid;place-items:center;font-size:16px;color:var(--tl)}
+.col-empty-txt{font-size:11.5px;color:var(--tl);line-height:1.4}
+
+/* ── HISTORY ACCORDION ── */
+.hist-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--xs)}
+.hist-trigger{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;transition:background .12s;border-bottom:1px solid transparent}
+.hist-trigger:hover{background:var(--hover)}
+.hist-trigger.open{border-bottom-color:var(--border)}
+.ht-left{display:flex;align-items:center;gap:10px}
+.ht-icon{width:34px;height:34px;border-radius:9px;background:var(--id);border:1px solid rgba(79,70,229,.18);display:grid;place-items:center;font-size:16px;flex-shrink:0}
+.ht-title{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.ht-badge{font-size:10.5px;font-weight:700;background:var(--id);color:var(--indigo);border:1px solid rgba(79,70,229,.2);border-radius:20px;padding:2px 9px}
+.ht-sub{font-size:11px;color:var(--ts);margin-top:1px}
+.ht-right{display:flex;align-items:center;gap:12px}
+.ht-stats{display:flex;align-items:center;gap:6px}
+.ht-stat{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.hts-done {background:var(--gd);color:var(--green);border:1px solid var(--gb)}
+.hts-wip  {background:var(--id);color:var(--indigo);border:1px solid rgba(79,70,229,.2)}
+.hts-stuck{background:var(--rd);color:var(--red);border:1px solid var(--rb)}
+.hist-chevron{width:28px;height:28px;border-radius:7px;background:var(--s2);border:1px solid var(--border);display:grid;place-items:center;font-size:11px;color:var(--ts);transition:transform .22s cubic-bezier(.4,0,.2,1),background .12s;flex-shrink:0}
+.hist-trigger:hover .hist-chevron{background:var(--s3)}
+.hist-chevron.open{transform:rotate(180deg)}
+.hist-body{display:none;animation:hist-slide-in .22s ease both}
+@keyframes hist-slide-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.hist-body.open{display:block}
+.hist-toolbar{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s2);display:flex;flex-direction:column;gap:10px}
+.hist-toolbar-top{display:flex;align-items:center;gap:10px}
+.search-box{display:flex;align-items:center;background:var(--surface);border:1px solid var(--bm);border-radius:8px;padding:0 10px;gap:7px;transition:border-color .12s,box-shadow .12s;flex:1;max-width:320px}
+.search-box:focus-within{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.search-ico{font-size:13px;color:var(--ts);flex-shrink:0}
+.search-inp{border:none;background:transparent;outline:none;font-family:var(--font);font-size:12.5px;color:var(--text);padding:7px 0;flex:1}
+.search-inp::placeholder{color:var(--tl)}
+.search-clr{background:none;border:none;cursor:pointer;color:var(--ts);font-size:12px;padding:0;transition:color .12s}
+.search-clr:hover{color:var(--text)}
+.filter-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fchip{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;border:1px solid var(--bm);background:var(--surface);color:var(--ts);font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .12s}
+.fchip:hover{border-color:var(--bd);color:var(--text)}
+.fchip.active{background:var(--id);border-color:rgba(79,70,229,.3);color:var(--indigo)}
+.fchip.fc-done.active {background:var(--gd);border-color:var(--gb);color:var(--green)}
+.fchip.fc-wip.active  {background:var(--id);border-color:rgba(79,70,229,.3);color:var(--indigo)}
+.fchip.fc-wait.active {background:var(--vd);border-color:var(--vb);color:var(--violet)}
+.fchip.fc-stuck.active{background:var(--rd);border-color:var(--rb);color:var(--red)}
+.fchip.fc-rcvd.active {background:var(--ad);border-color:var(--ab);color:var(--amber)}
+.fchip-n{font-size:10px;font-weight:700;background:rgba(0,0,0,.07);border-radius:10px;padding:0 5px;min-width:18px;text-align:center}
+.fchip.active .fchip-n{background:rgba(0,0,0,.10)}
+.hist-tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bm) transparent}
+.hist-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.hist-table thead th{background:var(--s2);border-bottom:1px solid var(--border);padding:9px 12px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ts);white-space:nowrap;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none;transition:color .12s}
+.hist-table thead th:hover{color:var(--text)}
+.hist-table thead th.s-asc::after {content:' ↑';opacity:.55}
+.hist-table thead th.s-desc::after{content:' ↓';opacity:.55}
+.hist-table thead th.no-sort{cursor:default}
+.hist-table thead th.no-sort:hover{color:var(--ts)}
+.hist-table tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+.hist-table tbody tr:last-child{border-bottom:none}
+.hist-table tbody tr:hover{background:var(--hover)}
+.hist-table tbody tr.row-done {opacity:.72}
+.hist-table tbody tr.row-stuck{background:rgba(185,28,28,.025)}
+.hist-table tbody tr.row-wait {background:rgba(109,40,217,.025)}
+.hist-table tbody tr.row-rcvd {background:rgba(180,83,9,.025)}
+.hist-table td{padding:10px 12px;color:var(--tm);vertical-align:middle}
+.td-id{font-size:11px;font-weight:700;color:var(--indigo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.td-date{font-size:11.5px;color:var(--ts);white-space:nowrap}
+.origin-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.ot-assigned{background:var(--ad);color:var(--amber)}
+.ot-self    {background:var(--sld);color:var(--slate)}
+.ot-help    {background:var(--rd);color:var(--red)}
+.td-title{min-width:200px;max-width:280px}
+.t-main{font-size:13px;font-weight:600;color:var(--text);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:2px}
+.t-sub {font-size:11px;color:var(--ts)}
+.t-from{font-size:10.5px;color:var(--amber);font-weight:600}
+.sbadge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.sb-done  {background:var(--gd);color:var(--green);border:1px solid var(--gb)}
+.sb-wip   {background:var(--id);color:var(--indigo);border:1px solid rgba(79,70,229,.2)}
+.sb-wait  {background:var(--vd);color:var(--violet);border:1px solid var(--vb)}
+.sb-stuck {background:var(--rd);color:var(--red);border:1px solid var(--rb)}
+.sb-rcvd  {background:var(--ad);color:var(--amber);border:1px solid var(--ab)}
+.sb-cancel{background:var(--sld);color:var(--slate);border:1px solid rgba(71,85,105,.18)}
+.prog-wrap{display:flex;align-items:center;gap:6px}
+.prog-bar{width:52px;height:4px;background:var(--s3);border-radius:4px;overflow:hidden;flex-shrink:0}
+.prog-fill{height:100%;border-radius:4px;background:var(--indigo2)}
+.row-done  .prog-fill{background:var(--green2)}
+.row-stuck .prog-fill{background:var(--red2)}
+.row-wait  .prog-fill{background:var(--violet)}
+.prog-pct{font-size:10.5px;font-weight:600;color:var(--ts);font-variant-numeric:tabular-nums}
+.view-btn{background:var(--s2);border:1px solid var(--bm);color:var(--indigo);border-radius:7px;padding:4px 12px;font-family:var(--font);font-size:11.5px;font-weight:600;cursor:pointer;transition:all .12s}
+.view-btn:hover{background:var(--id);border-color:rgba(79,70,229,.3);transform:translateY(-1px)}
+.hist-empty{padding:40px 20px;text-align:center}
+.hist-empty-ico{font-size:30px;opacity:.2;margin-bottom:10px}
+.hist-empty-txt{font-size:13px;color:var(--ts)}
+.hist-footer{padding:9px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--s2)}
+.hist-count{font-size:11.5px;color:var(--ts)}
+.hist-count strong{color:var(--text);font-weight:700}
+.hist-pages{display:flex;gap:4px}
+.pg-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--bm);background:var(--surface);font-size:11.5px;font-weight:600;color:var(--tm);cursor:pointer;display:grid;place-items:center;transition:all .12s}
+.pg-btn:hover{border-color:var(--indigo);color:var(--indigo)}
+.pg-btn.active{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+
+/* ── TEAM PANEL ── */
+.team-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--xs)}
+.team-head{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;transition:background .12s;user-select:none;border-bottom:1px solid transparent}
+.team-head:hover{background:var(--hover)}
+.team-head.open{border-bottom-color:var(--border)}
+.th-left{display:flex;align-items:center;gap:9px}
+.th-title{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tm)}
+.achip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px}
+.ac-amber{background:var(--ad);color:var(--amber);border:1px solid var(--ab)}
+.ac-red  {background:var(--rd);color:var(--red);border:1px solid var(--rb)}
+.th-right{display:flex;align-items:center;gap:10px}
+.th-kpi{font-size:12px;color:var(--ts);font-weight:500}
+.th-kpi strong{color:var(--green);font-weight:700}
+.chevron{font-size:11px;color:var(--ts);display:inline-block;transition:transform .22s cubic-bezier(.4,0,.2,1)}
+.chevron.up{transform:rotate(180deg)}
+.team-body{display:none}
+.members{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:8px;padding:12px}
+.mcard{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;overflow:hidden;transition:all .12s}
+.mcard:hover{border-color:var(--bm);box-shadow:var(--sm)}
+.mcard.m-stuck{border-color:var(--rb);background:rgba(185,28,28,.02)}
+.mcard.m-wait {border-color:var(--ab);background:rgba(180,83,9,.02)}
+.mcard.m-idle {opacity:.55}
+.mcard.m-stuck::after{content:'';position:absolute;top:0;right:0;border-style:solid;border-width:0 15px 15px 0;border-color:transparent var(--red2) transparent transparent;opacity:.45}
+.m-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:7px}
+.m-stats{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.mst{font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px}
+.ms-total{background:var(--sld);color:var(--slate)}
+.ms-done {background:var(--gd);color:var(--green)}
+.ms-wip  {background:var(--id);color:var(--indigo)}
+.ms-wait {background:var(--ad);color:var(--amber)}
+.ms-stuck{background:var(--rd);color:var(--red)}
+.ms-idle {background:var(--sld);color:var(--tl)}
+.m-bar{height:3px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:9px}
+.m-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green) 0%,var(--green2) 100%)}
+.mcard.m-stuck .m-fill{background:var(--red2)}
+.mcard.m-wait  .m-fill{background:var(--amber2)}
+.m-btn{width:100%;background:var(--surface);border:1px solid var(--bm);color:var(--ts);border-radius:7px;padding:5px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.m-btn:hover{background:var(--id);border-color:rgba(79,70,229,.25);color:var(--indigo)}
+
+/* ── ANIMATIONS & UTILS ── */
+.fu{animation:fu .32s ease both}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.d1{animation-delay:.05s}.d2{animation-delay:.10s}.d3{animation-delay:.15s}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bm);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--bd)}
+
+/* ── RESPONSIVE TUNING ───────────────────────────────────── */
+@media (max-width: 1200px){
+  /* Giữ đủ 5 cột nhưng cho phép scroll ngang */
+  .kanban{
+    grid-auto-flow:column;
+    grid-auto-columns:minmax(260px,1fr);
+    overflow-x:auto;
+    padding-bottom:8px;
+  }
+}
+@media (max-width: 992px){
+  .td-shell{
+    grid-template-columns:1fr;
+  }
+  .td-sidebar{
+    position:static;
+    height:auto;
+    flex-direction:row;
+    gap:12px;
+    overflow-x:auto;
+    padding-inline:16px;
+  }
+  .cmp-block{
+    min-width:220px;
+  }
+}
+@media (max-width: 768px){
+  .topbar{
+    padding-inline:12px;
+    gap:8px;
+  }
+  .tb-mod{display:none;}
+  .clock-badge{font-size:11.5px;padding-inline:6px;}
+  .td-main{
+    padding:14px 12px;
+  }
+  .hist-toolbar{
+    padding-inline:12px;
+  }
+  .hist-table td,
+  .hist-table thead th{
+    padding:8px 10px;
+  }
+}
 </style>
 {% endblock %}
 
-{% block page_title %}<i class="fas fa-tasks me-2 text-primary"></i> QUẢN LÝ ĐẦU VIỆC{% endblock %}
-{% block page_sub %}Theo dõi tiến độ công việc hàng ngày và giao việc.{% endblock %}
-
-{% block header_actions %}
-<a href="/" class="btn btn-back"><i class="fas fa-home me-2"></i>Portal</a>
-{% if can_manage_view %}
-    {% if view_mode == 'SUPERVISOR' %}
-        <a href="{{ url_for('task_bp.task_dashboard', view='USER', filter=active_filter) }}" class="btn btn-warning text-dark border-0 shadow-sm"><i class="fas fa-user-circle me-1"></i> View Cá nhân</a>
-    {% else %}
-        <a href="{{ url_for('task_bp.task_dashboard', view='SUPERVISOR', filter=active_filter) }}" class="btn btn-danger text-white border-0 shadow-sm"><i class="fas fa-user-tie me-1"></i> View Quản lý</a>
-    {% endif %}
-{% endif %}
-{% endblock %}
 
 {% block content %}
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6">
-            <div class="kpi-tile bg-total {% if active_filter == 'ALL' %}kpi-active{% endif %}" onclick="filterTasks('ALL')">
-                <span class="kpi-value">{{ kpi.TotalTasks|default(0) }}</span>
-                <span class="kpi-label">Tổng Task (30 Ngày)</span>
-            </div>
+
+{# ══ EARLY FUNCTIONS — define trước onclick inline để tránh ReferenceError ══ #}
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Các function này được gọi từ onclick= inline HTML, nên phải
+   tồn tại TRƯỚC khi browser parse các element đó.
+   task_dashboard.js / task_dashboard_modal.js load sau (defer)
+   và sẽ override / bổ sung thêm.
+   ───────────────────────────────────────────────────────────── */
+
+/* ── KPI sidebar ── */
+function selKpi(el){
+  document.querySelectorAll('.kpi-row').forEach(function(r){r.classList.remove('sel');});
+  el.classList.add('sel');
+}
+
+/* ── Accordion lịch sử ── */
+var histOpen=false;
+function toggleHist(){
+  histOpen=!histOpen;
+  var body=document.getElementById('hist-body');
+  var chev=document.getElementById('hist-chev');
+  var trig=document.getElementById('hist-trigger');
+  var sub =document.getElementById('hist-sub-txt');
+  if(histOpen){
+    body.classList.add('open');chev.classList.add('open');trig.classList.add('open');
+    if(sub)sub.textContent='30 ngay gan nhat · bam de thu gon';
+  }else{
+    body.classList.remove('open');chev.classList.remove('open');trig.classList.remove('open');
+    if(sub)sub.textContent='30 ngay gan nhat · bam de mo rong';
+  }
+  try{localStorage.setItem('histOpen',histOpen?'1':'0');}catch(e){}
+}
+
+/* ── Accordion team ── */
+function toggleTeam(){
+  var body=document.getElementById('team-body');
+  var chev=document.getElementById('chev');
+  var hd  =document.getElementById('team-hd');
+  if(!body)return;
+  var open=body.style.display!=='none'&&body.style.display!=='';
+  body.style.display=open?'none':'block';
+  if(chev)chev.classList.toggle('up',!open);
+  if(hd)  hd.classList.toggle('open',!open);
+  try{localStorage.setItem('tp',open?'0':'1');}catch(e){}
+}
+
+/* ── Modals ── */
+window.openCreateTaskModal=function(){
+  var el=document.getElementById('createTaskModal');
+  if(typeof bootstrap!=='undefined'&&el){
+    var m=bootstrap.Modal.getInstance(el)||new bootstrap.Modal(el);
+    m.show();
+  }
+};
+/* openUpdateModal / openAssignTaskModal được define đầy đủ
+   trong task_dashboard_modal.js (load defer). Stub tránh crash. */
+window.openUpdateModal=window.openUpdateModal||function(id){
+  console.warn('openUpdateModal pending JS load, id='+id);
+};
+window.openAssignTaskModal=window.openAssignTaskModal||function(code){
+  console.warn('openAssignTaskModal pending JS load');
+};
+
+/* ── Live clock ── */
+(function tick(){
+  var d=new Date(),el=document.getElementById('clock');
+  if(el)el.textContent=
+    String(d.getHours()).padStart(2,'0')+':'+
+    String(d.getMinutes()).padStart(2,'0')+':'+
+    String(d.getSeconds()).padStart(2,'0');
+  setTimeout(tick,1000);
+})();
+
+/* ── Restore accordion + card stagger on DOMContentLoaded ── */
+document.addEventListener('DOMContentLoaded',function(){
+  try{if(localStorage.getItem('histOpen')==='1')toggleHist();}catch(e){}
+  try{if(localStorage.getItem('tp')==='1')toggleTeam();}catch(e){}
+  document.querySelectorAll('.td-card').forEach(function(c,i){
+    c.style.animationDelay=(i*0.045+0.05)+'s';
+  });
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='p'){
+      e.preventDefault();alert('Chuc nang in da bi khoa.');
+    }
+  },true);
+});
+</script>
+
+{# ══ DATA ISLANDS — JS sẽ đọc từ đây ══ #}
+<div id="task-context"
+     data-base-url="{{ url_for('task_bp.task_dashboard') }}"
+     data-view-mode="USER"
+     data-active-filter="{{ active_filter }}"
+     data-search-term="{{ text_search_term | e }}"
+     style="display:none"></div>
+<span id="task-current-user" style="display:none">{{ session.get('user_code','') | e }}</span>
+<script id="task-data-daily"    type="application/json">{{ kanban_tasks   | tojson }}</script>
+<script id="task-data-history"  type="application/json">{{ history_tasks  | tojson }}</script>
+<script id="task-data-assigned" type="application/json">{{ assigned_tasks | tojson }}</script>
+<script id="task-data-isadmin"  type="application/json">{{ is_admin | tojson }}</script>
+
+
+{# ══ TOPBAR ══ #}
+<header class="topbar">
+  <a class="logo" href="{{ url_for('task_bp.task_dashboard') }}">
+    <div class="logo-gem">
+      <svg viewBox="0 0 14 14" fill="none">
+        <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="white"/>
+      </svg>
+    </div>
+    Titan OS
+  </a>
+  <div class="tb-sep"></div>
+  <span class="tb-mod">Quản lý Đầu việc</span>
+  <div class="tb-sp"></div>
+  <div class="tb-r">
+    <div class="chip-live"><div class="dot-live"></div>Trực tiếp</div>
+    <div class="clock-badge" id="clock">--:--:--</div>
+    <div class="avatar"
+         title="{{ session.get('user_name','') | e }} — {{ session.get('user_code','') | e }}">
+      {{ (session.get('user_name','') or session.get('user_code','?'))[:2] | upper }}
+    </div>
+  </div>
+</header>
+
+
+<div class="td-shell">
+
+{# ══ SIDEBAR ══ #}
+<aside class="td-sidebar">
+  <div class="sb-user">
+    <div class="sb-code">{{ session.get('user_code','') }}</div>
+    <div class="sb-name">{{ session.get('user_name', session.get('user_code','')) }}</div>
+    <div class="sb-role">{{ session.get('user_role','') }}</div>
+  </div>
+
+  <div class="kpi-list">
+    {%- set ktotal = kpi.TotalTasks      | default(0) -%}
+    {%- set kdone  = kpi.Completed        | default(0) -%}
+    {%- set kwip   = kpi.Pending          | default(0) -%}
+    {%- set krcvd  = kpi.Assigned         | default(0) -%}
+    {%- set khelp  = kpi.HelpNeeded       | default(0) -%}
+    {%- set kpct   = kpi.CompletedPercent | default(0) -%}
+
+    <div class="kpi-row r-all sel" onclick="selKpi(this)">
+      <div class="kpi-lhs"><div class="kpi-ico">📋</div><span class="kpi-lbl">Tổng (30 ngày)</span></div>
+      <div class="kpi-rhs"><span class="kpi-val">{{ ktotal }}</span></div>
+    </div>
+    <div class="kpi-row r-done" onclick="selKpi(this)">
+      <div class="kpi-lhs"><div class="kpi-ico">✅</div><span class="kpi-lbl">Hoàn thành</span></div>
+      <div class="kpi-rhs"><span class="kpi-val">{{ kdone }}</span></div>
+    </div>
+    <div class="kpi-row r-wip" onclick="selKpi(this)">
+      <div class="kpi-lhs"><div class="kpi-ico">⚡</div><span class="kpi-lbl">Đang xử lý</span></div>
+      <div class="kpi-rhs"><span class="kpi-val">{{ kwip }}</span></div>
+    </div>
+    {% if krcvd > 0 %}
+    <div class="kpi-row r-rcvd" onclick="selKpi(this)">
+      <div class="kpi-lhs"><div class="kpi-ico">📌</div><span class="kpi-lbl">Được giao</span></div>
+      <div class="kpi-rhs"><span class="kpi-val">{{ krcvd }}</span><span class="kpi-pill p-new">Mới</span></div>
+    </div>
+    {% endif %}
+    {% if khelp > 0 %}
+    <div class="kpi-row r-help" onclick="selKpi(this)">
+      <div class="kpi-lhs"><div class="kpi-ico">🚧</div><span class="kpi-lbl">Cần hỗ trợ</span></div>
+      <div class="kpi-rhs"><span class="kpi-val">{{ khelp }}</span><span class="kpi-pill p-bad">!</span></div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Completion ring — tính stroke-dashoffset từ pct #}
+  {%- set ring_offset = (163.4 * (1 - kpct / 100)) | round(1) -%}
+  <div class="cmp-block">
+    <div class="cmp-lbl">Tỉ lệ hoàn thành</div>
+    <div class="cmp-body">
+      <div class="ring-wrap">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle class="ring-track" cx="32" cy="32" r="26"/>
+          <circle class="ring-fill"  cx="32" cy="32" r="26"
+                  style="stroke-dashoffset:{{ ring_offset }}"/>
+        </svg>
+        <div class="ring-ctr">{{ kpct }}%</div>
+      </div>
+      <div>
+        <div class="cmp-pct">{{ kpct }}%</div>
+        <div class="cmp-sub">{{ kdone }} / {{ ktotal }} task xong</div>
+        <div class="cmp-sub" style="color:var(--tl);font-size:10.5px;margin-top:2px">
+          {{ current_date[:7] | replace('-', '/') if current_date else '' }}
         </div>
-        <div class="col-md-3 col-6">
-            <div class="kpi-tile bg-completed {% if active_filter == 'COMPLETED' %}kpi-active{% endif %}" onclick="filterTasks('COMPLETED')">
-                <span class="kpi-value">{{ kpi.Completed|default(0) }}</span>
-                <span class="kpi-label">Đã Hoàn thành</span>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="kpi-tile bg-pending {% if active_filter == 'PENDING' %}kpi-active{% endif %}" onclick="filterTasks('PENDING')">
-                <span class="kpi-value">{{ kpi.Pending|default(0) }}</span>
-                <span class="kpi-label">Đang Chờ / Mới</span>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="kpi-tile bg-help {% if active_filter == 'HELP' %}kpi-active{% endif %}" onclick="filterTasks('HELP')">
-                <span class="kpi-value">{{ kpi.HelpNeeded|default(0) }}</span>
-                <span class="kpi-label">Cần hỗ trợ / Giao việc</span>
-            </div>
-        </div>
+      </div>
+    </div>
+    <div class="cmp-bar"><div class="cmp-fill" style="width:{{ kpct }}%"></div></div>
+  </div>
+</aside>
+
+
+{# ══ MAIN ══ #}
+<main class="td-main">
+
+  {# ── Flash messages ── #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="fu">
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'danger' }} alert-dismissible fade show"
+         role="alert" style="border-radius:10px;font-size:13px">
+      {{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+
+  {# ── ALERT STRIP: task được giao chưa nhận ── #}
+  {% if assigned_tasks %}
+  <div class="alert-strip fu" id="assigned-tasks-banner">
+    <div class="strip-ico">📌</div>
+    <div class="strip-body">
+      <div class="strip-title">{{ assigned_tasks | length }} việc được giao đang chờ xác nhận</div>
+      <div class="strip-sub">
+        {% for t in assigned_tasks[:3] %}
+          <strong>#{{ t.TaskID }}</strong> — {{ (t.Title or '') | truncate(28, True, '…') }}
+          {% if t.AssignedBy %}&ensp;·&ensp;từ <strong>{{ t.AssignedBy }}</strong>{% endif %}
+          {% if not loop.last %}&ensp;·&ensp;{% endif %}
+        {% endfor %}
+        {% if assigned_tasks | length > 3 %}
+          &ensp;+{{ assigned_tasks | length - 3 }} khác
+        {% endif %}
+      </div>
+    </div>
+    <button class="td-btn td-btn-amber"
+            onclick="openUpdateModal({{ assigned_tasks[0].TaskID }})">
+      Nhận việc →
+    </button>
+  </div>
+  {% endif %}
+
+
+  {# ══ KANBAN ══ #}
+  {%- set rcvd_tasks  = kanban_tasks | selectattr('Status','equalto','ASSIGNED')        | list -%}
+  {%- set open_tasks  = kanban_tasks | selectattr('Status','equalto','OPEN')            | list -%}
+  {%- set pend_tasks  = kanban_tasks | selectattr('Status','equalto','PENDING')         | list -%}
+  {%- set wc_tasks    = kanban_tasks | selectattr('Status','equalto','WAITING_CONFIRM') | list -%}
+  {%- set stuck_tasks = kanban_tasks | selectattr('Status','equalto','HELP_NEEDED')     | list -%}
+  {%- set done_tasks  = kanban_tasks | selectattr('Status','equalto','COMPLETED')       | list -%}
+  {%- set all_wip     = pend_tasks + wc_tasks -%}
+
+  <div class="fu d1">
+    <div class="sec-hd">
+      <div class="sec-lbl"><div class="sec-dot"></div>Kanban — 3 ngày gần nhất</div>
+      <div class="act-bar">
+        {% if can_manage_view %}
+        <button class="td-btn td-btn-soft-red" onclick="openAssignTaskModal()">↓ Giao việc</button>
+        {% endif %}
+        <button class="td-btn td-btn-primary" onclick="openCreateTaskModal()">＋ Tạo task</button>
+      </div>
     </div>
 
-    <div class="main-card mb-4">
-        <div class="card-header-custom d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-columns me-2 text-primary"></i> KANBAN BOARD (3 ngày gần nhất)</span>
-            <button class="btn btn-primary btn-sm shadow-sm" onclick="openCreateTaskModal()">
-                <i class="fas fa-plus me-1"></i> Tạo Task
-            </button>
+    <div class="kanban">
+
+      {# COL 1 — Được giao #}
+      <div class="k-col col-rcvd">
+        <div class="k-stripe"></div>
+        <div class="k-head">
+          <span class="k-name">Được giao</span>
+          <span class="k-cnt">{{ rcvd_tasks | length }}</span>
         </div>
-        <div class="card-body-custom p-3">
-            <div class="kanban-container">
-                <div class="kanban-column" style="border-top: 4px solid var(--secondary);">
-                    <div class="kanban-column-header">MỚI TẠO (OPEN)</div>
-                    <div class="task-list">
-                        {% for task in kanban_tasks if task.Status == 'OPEN' %}
-                            {% include 'partials/task_card.html' %}
-                        {% endfor %}
-                    </div>
+        <div class="k-body">
+          {% for t in rcvd_tasks %}
+          <div class="td-card s-assigned" onclick="openUpdateModal({{ t.TaskID }})">
+            <div class="c-bar"></div>
+            <div class="pip"></div>
+            <div class="c-id">#{{ t.TaskID }}</div>
+            {% if t.AssignedBy %}<div class="c-from">↓ từ {{ t.AssignedBy }}</div>{% endif %}
+            <div class="c-title">{{ t.Title }}</div>
+            <div class="c-foot">
+              <div class="c-tags">
+                <span class="c-tag {% if t.TaskType in ['SALES','DELIVERY'] %}t-sales{% else %}t-internal{% endif %}">
+                  {{ t.TaskType | default('Nội bộ') }}
+                </span>
+              </div>
+              {% if t.DueDate %}
+              <span class="due due-soon">{{ t.DueDate[:10] }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div class="col-empty">
+            <div class="col-empty-ico">📌</div>
+            <div class="col-empty-txt">Không có việc<br>được giao</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# COL 2 — Mới tạo #}
+      <div class="k-col col-open">
+        <div class="k-stripe"></div>
+        <div class="k-head">
+          <span class="k-name">Mới tạo</span>
+          <span class="k-cnt">{{ open_tasks | length }}</span>
+        </div>
+        <div class="k-body">
+          {% for t in open_tasks %}
+          <div class="td-card" onclick="openUpdateModal({{ t.TaskID }})">
+            <div class="c-bar"></div>
+            <div class="c-id">#{{ t.TaskID }}</div>
+            <div class="c-title">{{ t.Title }}</div>
+            <div class="c-foot">
+              <div class="c-tags">
+                <span class="c-tag t-internal">{{ t.TaskType | default('Nội bộ') }}</span>
+              </div>
+              <div class="c-prog">
+                <div class="mbar"><div class="mfill" style="width:{{ t.ProgressPercentage | default(0) }}%"></div></div>
+                <span class="pct">{{ t.ProgressPercentage | default(0) }}%</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-empty">
+            <div class="col-empty-ico">○</div>
+            <div class="col-empty-txt">Chưa có task<br>mới tạo</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# COL 3 — Đang xử lý (PENDING + WAITING_CONFIRM) #}
+      <div class="k-col col-wip">
+        <div class="k-stripe"></div>
+        <div class="k-head">
+          <span class="k-name">Đang xử lý</span>
+          <span class="k-cnt">{{ all_wip | length }}</span>
+        </div>
+        <div class="k-body">
+          {% for t in all_wip %}
+          {%- set is_waiting = (t.Status == 'WAITING_CONFIRM') -%}
+          <div class="td-card {% if is_waiting %}s-waiting{% endif %}"
+               onclick="openUpdateModal({{ t.TaskID }})">
+            <div class="c-bar"></div>
+            {% if is_waiting %}<div class="pip violet"></div>{% endif %}
+            <div class="c-id">#{{ t.TaskID }}</div>
+            <div class="c-title">{{ t.Title }}</div>
+            <div class="c-foot">
+              <div class="c-tags">
+                {% if is_waiting %}
+                  <span class="c-tag t-waiting">Chờ duyệt</span>
+                {% else %}
+                  <span class="c-tag {% if t.TaskType in ['SALES','DELIVERY'] %}t-sales{% else %}t-internal{% endif %}">{{ t.TaskType | default('Nội bộ') }}</span>
+                {% endif %}
+              </div>
+              <div class="c-prog">
+                <div class="mbar"><div class="mfill" style="width:{{ t.ProgressPercentage | default(0) }}%"></div></div>
+                <span class="pct"{% if is_waiting %} style="color:var(--violet)"{% endif %}>{{ t.ProgressPercentage | default(0) }}%</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-empty">
+            <div class="col-empty-ico">○</div>
+            <div class="col-empty-txt">Không có task<br>đang xử lý</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# COL 4 — Cần hỗ trợ #}
+      <div class="k-col col-stuck">
+        <div class="k-stripe"></div>
+        <div class="k-head">
+          <span class="k-name">Cần hỗ trợ</span>
+          <span class="k-cnt">{{ stuck_tasks | length }}</span>
+        </div>
+        <div class="k-body">
+          {% for t in stuck_tasks %}
+          <div class="td-card s-blocked" onclick="openUpdateModal({{ t.TaskID }})">
+            <div class="c-bar"></div>
+            <div class="c-id">#{{ t.TaskID }}</div>
+            <div class="c-title">{{ t.Title }}</div>
+            <div class="c-foot">
+              <div class="c-tags">
+                <span class="c-tag {% if t.TaskType in ['SALES','DELIVERY'] %}t-sales{% else %}t-internal{% endif %}">{{ t.TaskType | default('Nội bộ') }}</span>
+              </div>
+              <div class="c-prog">
+                <div class="mbar"><div class="mfill" style="width:{{ t.ProgressPercentage | default(0) }}%"></div></div>
+                <span class="pct" style="color:var(--red)">{{ t.ProgressPercentage | default(0) }}%</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-empty">
+            <div class="col-empty-ico">🟢</div>
+            <div class="col-empty-txt">Không có task<br>bị kẹt</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# COL 5 — Hoàn thành #}
+      <div class="k-col col-done">
+        <div class="k-stripe"></div>
+        <div class="k-head">
+          <span class="k-name">Hoàn thành</span>
+          <span class="k-cnt">{{ done_tasks | length }}</span>
+        </div>
+        <div class="k-body">
+          {% for t in done_tasks %}
+          <div class="td-card s-done" onclick="openUpdateModal({{ t.TaskID }})">
+            <div class="c-bar"></div>
+            <div class="c-id">#{{ t.TaskID }}</div>
+            <div class="c-title">{{ t.Title }}</div>
+            <div class="c-foot">
+              <div class="c-tags">
+                <span class="c-tag t-internal">{{ t.TaskType | default('Nội bộ') }}</span>
+              </div>
+              <div class="c-prog">
+                <div class="mbar"><div class="mfill" style="width:100%"></div></div>
+                <span class="pct" style="color:var(--green)">100%</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-empty">
+            <div class="col-empty-ico">○</div>
+            <div class="col-empty-txt">Chưa có task<br>hoàn thành hôm nay</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>{# /kanban #}
+  </div>
+
+
+  {# ══ BẢNG LỊCH SỬ — ACCORDION ══ #}
+  {%- set h_total = history_tasks | length -%}
+  {%- set h_done  = history_tasks | selectattr('Status','equalto','COMPLETED')       | list | length -%}
+  {%- set h_pend  = history_tasks | selectattr('Status','in',['OPEN','PENDING'])     | list | length -%}
+  {%- set h_wait  = history_tasks | selectattr('Status','equalto','WAITING_CONFIRM') | list | length -%}
+  {%- set h_stuck = history_tasks | selectattr('Status','equalto','HELP_NEEDED')     | list | length -%}
+  {%- set h_rcvd  = history_tasks | selectattr('Status','equalto','ASSIGNED')        | list | length -%}
+
+  <div class="hist-panel fu d2">
+
+    <div class="hist-trigger" id="hist-trigger" onclick="toggleHist()">
+      <div class="ht-left">
+        <div class="ht-icon">📂</div>
+        <div>
+          <div class="ht-title">
+            Danh sách tất cả task
+            <span class="ht-badge">{{ h_total }} task</span>
+          </div>
+          <div class="ht-sub" id="hist-sub-txt">30 ngày gần nhất · bấm để mở rộng</div>
+        </div>
+      </div>
+      <div class="ht-right">
+        <div class="ht-stats">
+          <span class="ht-stat hts-done">✅ {{ h_done }} xong</span>
+          <span class="ht-stat hts-wip">⚡ {{ h_pend + h_wait }} đang làm</span>
+          {% if h_stuck > 0 %}<span class="ht-stat hts-stuck">🚧 {{ h_stuck }} kẹt</span>{% endif %}
+        </div>
+        <div class="hist-chevron" id="hist-chev">▾</div>
+      </div>
+    </div>
+
+    <div class="hist-body" id="hist-body">
+
+      {# Toolbar — search + chips #}
+      <div class="hist-toolbar">
+        <div class="hist-toolbar-top">
+          <div class="search-box">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="hist-search" type="text"
+                   placeholder="Tìm tiêu đề, khách hàng…"
+                   value="{{ text_search_term | e }}"
+                   oninput="applyHistFilter()">
+            <button class="search-clr" onclick="clearHistSearch()" title="Xóa">✕</button>
+          </div>
+        </div>
+        <div class="filter-chips">
+          <div class="fchip{% if active_filter == 'ALL' %} active{% endif %}"
+               onclick="setHistChip(this,'ALL')">
+            Tất cả <span class="fchip-n">{{ h_total }}</span>
+          </div>
+          <div class="fchip fc-wip{% if active_filter == 'WIP' %} active{% endif %}"
+               onclick="setHistChip(this,'WIP')">
+            ⚡ Đang xử lý <span class="fchip-n">{{ h_pend }}</span>
+          </div>
+          <div class="fchip fc-done{% if active_filter == 'DONE' %} active{% endif %}"
+               onclick="setHistChip(this,'DONE')">
+            ✅ Hoàn thành <span class="fchip-n">{{ h_done }}</span>
+          </div>
+          <div class="fchip fc-wait{% if active_filter == 'WAIT' %} active{% endif %}"
+               onclick="setHistChip(this,'WAIT')">
+            🕐 Chờ duyệt <span class="fchip-n">{{ h_wait }}</span>
+          </div>
+          {% if h_stuck > 0 %}
+          <div class="fchip fc-stuck{% if active_filter == 'STUCK' %} active{% endif %}"
+               onclick="setHistChip(this,'STUCK')">
+            🚧 Cần hỗ trợ <span class="fchip-n">{{ h_stuck }}</span>
+          </div>
+          {% endif %}
+          {% if h_rcvd > 0 %}
+          <div class="fchip fc-rcvd{% if active_filter == 'RCVD' %} active{% endif %}"
+               onclick="setHistChip(this,'RCVD')">
+            📌 Được giao <span class="fchip-n">{{ h_rcvd }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Table #}
+      <div class="hist-tbl-wrap">
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th onclick="sortHistTable(0)">ID</th>
+              <th onclick="sortHistTable(1)">Ngày tạo</th>
+              <th class="no-sort">Nguồn</th>
+              <th onclick="sortHistTable(3)">Tiêu đề</th>
+              <th class="no-sort">Trạng thái</th>
+              <th onclick="sortHistTable(5)">Tiến độ</th>
+              <th class="no-sort" style="text-align:center">★</th>
+              <th class="no-sort"></th>
+            </tr>
+          </thead>
+          <tbody id="hist-tbody">
+            {% for t in history_tasks %}
+            {%- set st = t.Status | default('') -%}
+
+            {# row class #}
+            {%- if st == 'COMPLETED'       -%}{%- set rcls = 'row-done'  -%}
+            {%- elif st == 'HELP_NEEDED'   -%}{%- set rcls = 'row-stuck' -%}
+            {%- elif st == 'WAITING_CONFIRM'-%}{%- set rcls = 'row-wait' -%}
+            {%- elif st == 'ASSIGNED'      -%}{%- set rcls = 'row-rcvd' -%}
+            {%- else                       -%}{%- set rcls = ''          -%}
+            {%- endif -%}
+
+            {# badge #}
+            {%- if st == 'COMPLETED'        -%}{%- set bcls='sb-done'  -%}{%- set blbl='✅ Xong'         -%}
+            {%- elif st in ['OPEN','PENDING']-%}{%- set bcls='sb-wip'   -%}{%- set blbl='⚡ Đang làm'    -%}
+            {%- elif st == 'WAITING_CONFIRM'-%}{%- set bcls='sb-wait'  -%}{%- set blbl='🕐 Chờ duyệt'   -%}
+            {%- elif st == 'HELP_NEEDED'    -%}{%- set bcls='sb-stuck' -%}{%- set blbl='🚧 Cần hỗ trợ'  -%}
+            {%- elif st == 'ASSIGNED'       -%}{%- set bcls='sb-rcvd'  -%}{%- set blbl='📌 Được giao'   -%}
+            {%- elif st == 'CANCELLED'      -%}{%- set bcls='sb-cancel'-%}{%- set blbl='✕ Đã hủy'       -%}
+            {%- elif st == 'DECLINED'       -%}{%- set bcls='sb-cancel'-%}{%- set blbl='✕ Từ chối'      -%}
+            {%- else                        -%}{%- set bcls='sb-wip'   -%}{%- set blbl=st               -%}
+            {%- endif -%}
+
+            {# origin tag #}
+            {%- set orig = t.TaskOrigin | default('SELF') -%}
+            {%- if orig == 'ASSIGNED'  -%}{%- set ocls='ot-assigned'-%}{%- set olbl='↓ Được giao'-%}
+            {%- elif orig == 'HELP'    -%}{%- set ocls='ot-help'    -%}{%- set olbl='🆘 Hỗ trợ'  -%}
+            {%- else                   -%}{%- set ocls='ot-self'    -%}{%- set olbl='✏ Tự tạo'   -%}
+            {%- endif -%}
+
+            {# search index #}
+            {%- set sidx = [t.TaskID|string, t.Title|default(''), t.ClientName|default(''), t.ObjectID|default(''), t.AssignedBy|default('')] | join(' ') | lower -%}
+
+            <tr class="{{ rcls }}"
+                data-status="{{ st }}"
+                data-search="{{ sidx | e }}"
+                data-task-id="{{ t.TaskID }}"
+                onclick="openUpdateModal({{ t.TaskID }})">
+              <td class="td-id">#{{ t.TaskID }}</td>
+              <td class="td-date">{{ t.TaskDateDisplay | default(t.TaskDate) }}</td>
+              <td><span class="origin-tag {{ ocls }}">{{ olbl }}</span></td>
+              <td class="td-title">
+                <div class="t-main">{{ t.Title }}</div>
+                {% if t.ClientName %}<div class="t-sub">{{ t.ClientName }}</div>
+                {% elif t.AssignedBy %}<div class="t-from">↓ {{ t.AssignedBy }}</div>
+                {% endif %}
+              </td>
+              <td><span class="sbadge {{ bcls }}">{{ blbl }}</span></td>
+              <td>
+                <div class="prog-wrap">
+                  <div class="prog-bar">
+                    <div class="prog-fill" style="width:{{ t.ProgressPercentage | default(0) }}%"></div>
+                  </div>
+                  <span class="prog-pct">{{ t.ProgressPercentage | default(0) }}%</span>
                 </div>
-                <div class="kanban-column" style="border-top: 4px solid var(--warning);">
-                    <div class="kanban-column-header" style="color: var(--warning);">ĐANG XỬ LÝ (PENDING)</div>
-                    <div class="task-list">
-                        {% for task in kanban_tasks if task.Status in ['PENDING', 'BLOCKED', 'WAITING_CONFIRM'] %}
-                            {% include 'partials/task_card.html' %}
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="kanban-column" style="border-top: 4px solid var(--danger);">
-                    <div class="kanban-column-header" style="color: var(--danger);">CẦN HỖ TRỢ / GIAO VIỆC</div>
-                    <div class="task-list">
-                        {% for task in kanban_tasks if task.Status == 'HELP_NEEDED' %}
-                            {% include 'partials/task_card.html' %}
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="kanban-column" style="border-top: 4px solid var(--success);">
-                    <div class="kanban-column-header" style="color: var(--success);">HOÀN THÀNH (COMPLETED)</div>
-                    <div class="task-list">
-                        {% for task in kanban_tasks if task.Status == 'COMPLETED' %}
-                            {% include 'partials/task_card.html' %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+              </td>
+              <td style="text-align:center">
+                <span class="star{% if t.Priority == 'HIGH' %} on{% endif %}"
+                      style="font-size:13px;opacity:{% if t.Priority == 'HIGH' %}1{% else %}.2{% endif %}">★</span>
+              </td>
+              <td onclick="event.stopPropagation()">
+                <button class="view-btn" onclick="openUpdateModal({{ t.TaskID }})">Xem</button>
+              </td>
+            </tr>
+            {% else %}
+            <tr id="hist-no-data">
+              <td colspan="8" style="text-align:center;padding:30px;color:var(--ts)">
+                Chưa có task nào trong 30 ngày qua.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="hist-empty" id="hist-empty" style="display:none">
+          <div class="hist-empty-ico">🔍</div>
+          <div class="hist-empty-txt">Không tìm thấy task phù hợp</div>
         </div>
+      </div>
+
+      <div class="hist-footer">
+        <div class="hist-count">
+          Hiển thị <strong id="vis-count">{{ h_total }}</strong> / {{ h_total }} task
+        </div>
+        <div class="hist-pages">
+          <button class="pg-btn active">1</button>
+        </div>
+      </div>
+
+    </div>{# /hist-body #}
+  </div>{# /hist-panel #}
+
+
+  {# ══ TEAM PANEL — chỉ manager / admin ══ #}
+  {% if can_manage_view and team_data %}
+  {%- set tkpi    = team_data.team_kpi | default({}) -%}
+  {%- set talerts = team_data.alerts   | default([]) -%}
+  {%- set halerts = talerts | selectattr('type','equalto','help')    | list | length -%}
+  {%- set walerts = talerts | selectattr('type','equalto','waiting') | list | length -%}
+
+  <div class="team-panel fu d3">
+    <div class="team-head" id="team-hd" onclick="toggleTeam()">
+      <div class="th-left">
+        <span style="font-size:16px">👥</span>
+        <span class="th-title">Team của tôi</span>
+        {% if halerts > 0 %}<span class="achip ac-red">🚧 {{ halerts }} cần hỗ trợ</span>{% endif %}
+        {% if walerts > 0 %}<span class="achip ac-amber">🔔 {{ walerts }} chờ duyệt</span>{% endif %}
+      </div>
+      <div class="th-right">
+        <span class="th-kpi">
+          {{ tkpi.member_count | default(0) }} thành viên ·
+          <strong>{{ tkpi.pct | default(0) }}% hoàn thành</strong>
+        </span>
+        <span class="chevron" id="chev">▾</span>
+      </div>
     </div>
 
-    <div class="main-card">
-        <div class="card-header-custom">
-            <span><i class="fas fa-history me-2 text-primary"></i> Lịch sử Chi tiết (30 Ngày)</span>
+    <div class="team-body" id="team-body">
+      <div class="members">
+        {% for m in team_data.members | default([]) %}
+        {%- if m.help_needed > 0   -%}{%- set mcls = 'mcard m-stuck' -%}
+        {%- elif m.waiting > 0     -%}{%- set mcls = 'mcard m-wait'  -%}
+        {%- elif m.idle            -%}{%- set mcls = 'mcard m-idle'  -%}
+        {%- else                   -%}{%- set mcls = 'mcard'         -%}
+        {%- endif -%}
+        <div class="{{ mcls }}">
+          <div class="m-name">{{ m.name }}</div>
+          <div class="m-stats">
+            <span class="mst ms-total">{{ m.total }} task</span>
+            {% if m.completed  > 0 %}<span class="mst ms-done">{{ m.completed }} xong</span>{% endif %}
+            {% if m.pending    > 0 %}<span class="mst ms-wip">{{ m.pending }} đang làm</span>{% endif %}
+            {% if m.waiting    > 0 %}<span class="mst ms-wait">{{ m.waiting }} chờ duyệt</span>{% endif %}
+            {% if m.help_needed> 0 %}<span class="mst ms-stuck">{{ m.help_needed }} kẹt</span>{% endif %}
+            {% if m.idle %}<span class="mst ms-idle">Không có task</span>{% endif %}
+          </div>
+          <div class="m-bar"><div class="m-fill" style="width:{{ m.pct | default(0) }}%"></div></div>
+          <button class="m-btn" onclick="openAssignTaskModal('{{ m.code }}')">+ Giao việc</button>
         </div>
-        <div class="card-body-custom">
-            <form method="GET" action="{{ url_for('task_bp.task_dashboard', view=view_mode, filter=active_filter) }}" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Tìm kiếm nhanh..." 
-                               value="{{ text_search_term }}">
-                    <button class="btn btn-secondary" type="submit"><i class="fas fa-search"></i> Lọc</button>
-                    <a href="{{ url_for('task_bp.task_dashboard', view=view_mode, filter=active_filter) }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i></a>
-                </div>
-            </form>
-
-            <div class="table-responsive">
-                <table id="task-history-table" class="table table-hover table-sm table-task">
-                    <thead>
-                        <tr>
-                            <th>ID</th> <th>Ngày</th> <th>Loại</th> <th>Tiêu đề</th> <th>Đối tượng</th>
-                            <th>Người tạo</th> <th>Nội dung</th> <th>Trạng thái</th> <th>Note Cấp trên</th> <th>Ưu tiên</th> <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                         {% for task in history_tasks %}
-                            <tr data-task-id="{{ task.TaskID }}">
-                                <td class="text-primary fw-bold">{{ task.TaskID }}</td>
-                                <td>{{ task.TaskDateDisplay }}</td>
-                                <td><span class="badge bg-secondary bg-opacity-25 text-secondary border">{{ task.TaskType }}</span></td>
-                                <td class="fw-bold">{{ task.Title }}</td>
-                                <td>{{ task.ClientName or task.ObjectID or '—' }}</td>
-                                <td>{{ task.AssigneeShortName or task.UserCode }}</td> 
-                                <td class="truncate-content text-muted small">{{ task.DetailContent | default('—') }}</td>
-                                <td>
-                                    {% if task.Status == 'COMPLETED' %} <span class="badge bg-success">Hoàn thành</span>
-                                    {% elif task.Status == 'WAITING_CONFIRM' %} <span class="badge bg-warning text-dark">Chờ duyệt</span>
-                                    {% elif task.Status == 'HELP_NEEDED' %} <span class="badge bg-danger">Cần hỗ trợ</span>
-                                    {% else %} <span class="badge bg-warning text-dark">Đang xử lý</span> {% endif %}
-                                </td>
-                                <td>{{ (task.NoteCapTren or '') | truncate(30, True) or '—' }}</td>
-                                <td class="text-center">
-                                    <i class="fas fa-star" style="color: {% if task.Priority == 'HIGH' or task.Priority == 'ALERT' %}#ffc107{% else %}var(--border-color){% endif %};"></i>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-light border shadow-sm text-primary" onclick="openUpdateModal({{ task.TaskID }})">Xem</button>
-                                </td>
-                            </tr>
-                         {% else %}
-                            <tr><td colspan="11" class="text-center py-4 text-muted">Không có dữ liệu phù hợp.</td></tr>
-                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        {% endfor %}
+      </div>
     </div>
-    
-    <div class="modal fade" id="createTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Thêm công việc mới</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Tiêu đề công việc <span class="text-danger">*</span></label>
-                            <input type="text" name="task_title" class="form-control" required placeholder="...">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Mô tả chi tiết / Ghi chú ban đầu</label>
-                            <textarea name="detail_content" class="form-control" rows="3" placeholder="Nhập nội dung chi tiết công việc..."></textarea>
-                        </div>
-                        
-                        <div class="mb-3 position-relative">
-                            <label class="form-label">Đối tượng (Khách hàng/Dự án)</label>
-                            <input type="text" id="create_object_id_input" class="form-control" placeholder="Gõ tên khách hàng để tìm..." autocomplete="off">
-                            <input type="hidden" name="object_id" id="create_object_id_selected">
-                            <select id="create_kh_search_results" class="form-select" size="5" style="display:none; position:absolute; width:100%; z-index:1000;"></select>
-                        </div>
+  </div>
+  {% endif %}
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Phân loại</label>
-                                <select name="task_type" class="form-select">
-                                    <option value="GENERAL">Công việc chung</option>
-                                    <option value="SALES">Kinh doanh / Sales</option>
-                                    <option value="DOCUMENT">Chứng từ / Giấy tờ</option>
-                                    <option value="DELIVERY">Giao hàng</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-danger fw-bold"><i class="fas fa-clock"></i> Hạn chốt (Nếu có)</label>
-                                <input type="date" name="due_date" class="form-control">
-                            </div>
-                        </div>
+</main>
+</div>{# /td-shell #}
 
-                        <div class="mb-3">
-                            <label class="form-label text-primary fw-bold"><i class="fas fa-paperclip"></i> Đính kèm file/hình ảnh</label>
-                            <input type="file" name="attachment_file" class="form-control">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" name="create_task" value="1" class="btn btn-primary">Tạo Task</button>
-                    </div>
-                </form>
+
+{# ══════════════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════════════ #}
+
+{# ── Modal: Tạo task mới (LUỒNG A) ── #}
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-plus-circle me-2 text-primary"></i>Tạo Task Mới
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('task_bp.task_dashboard') }}"
+            enctype="multipart/form-data">
+        <input type="hidden" name="create_task" value="1">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-bold">
+                Tiêu đề task <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" name="task_title"
+                     placeholder="Mô tả công việc cụ thể (tối thiểu 8 ký tự)"
+                     required minlength="8">
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="updateTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg rounded-4 border-0">
-                <form id="updateTaskForm"> 
-                    <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title fw-bold">Cập nhật: <span id="updateTaskTitleDisplay" class="text-primary"></span></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body pt-3">
-                        <input type="hidden" id="update_task_id">
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Mã Task</label>
-                                <div class="p-2 bg-light rounded font-monospace" id="updateTaskIdDisplay">...</div>
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">Đối tượng liên quan</label>
-                                <input type="text" id="update_object_id" class="form-control text-primary fw-bold" readonly>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-success">Nội dung báo cáo / Chỉ đạo mới <span class="text-danger">*</span></label>
-                            <textarea id="update_detail_content" class="form-control border-success border-2" rows="3" placeholder="Nhập nội dung cập nhật tiến độ hoặc cần nhờ vả..."></textarea>
-                        </div>
-
-                        <div class="mb-3 p-3 bg-light border rounded">
-                            <label class="form-label fw-bold"><i class="fas fa-file-upload text-primary me-1"></i> Upload Minh chứng (Hình ảnh/File)</label>
-                            <input type="file" id="update_attachment" class="form-control border-primary">
-                            <small class="text-muted d-block mt-1">Bắt buộc tải lên file khi chốt hoàn thành các task loại Giao hàng hoặc Chứng từ.</small>
-                        </div>
-
-                        <div class="row align-items-end mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Trạng thái xử lý</label>
-                                <select id="log_type_select" class="form-select border-primary" onchange="syncProgressPercent(this.value)">
-                                    <option value="PROGRESS">Cập nhật tiến độ (Bình thường)</option>
-                                    <option value="BLOCKED">⚠️ Đang bị vướng (Blocked)</option>
-                                    <option value="REQUEST_CLOSE">✅ Yêu cầu Đóng (Hoàn thành)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Tiến độ (%)</label>
-                                <div class="d-flex align-items-center">
-                                    <input type="range" class="form-range flex-grow-1 me-2" id="progress_range" min="0" max="100" step="10" oninput="document.getElementById('progress_label').innerText = this.value + '%'">
-                                    <span id="progress_label" class="badge bg-primary" style="min-width: 45px;">50%</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-outline-danger w-100 fw-bold shadow-sm" id="helpCallBtn" onclick="toggleHelpBox()">
-                                    <i class="fas fa-hands-helping me-1"></i> Gọi Hỗ trợ / Giao việc
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="helperSelectionBox" class="p-3 mb-3 bg-danger-subtle border border-danger rounded-4 shadow-sm" style="display:none;">
-                            <label class="form-label fw-bold text-danger"><i class="fas fa-bullhorn me-1"></i> Chọn người hoặc phòng ban cần nhờ/giao việc:</label>
-                            <select id="helper_code_select" class="form-select border-danger" multiple size="5"></select>
-                            <small class="text-danger mt-1 d-block fst-italic">Giữ Ctrl để chọn nhiều người cùng lúc.</small>
-                        </div>
-
-                        <div class="text-end mb-3" id="approve_action_block" style="display:none;">
-                            <button type="button" class="btn btn-success fw-bold w-100 py-2 shadow" onclick="approveTask(true)">
-                                <i class="fas fa-check-circle me-1"></i> SẾP DUYỆT & ĐÓNG TASK NÀY
-                            </button>
-                        </div>
-
-                        <hr>
-                        <h6 class="text-muted fw-bold mb-3"><i class="fas fa-history me-1"></i> Lịch sử cập nhật & Trao đổi</h6>
-                        <div id="logHistoryContainer" style="max-height: 250px; overflow-y: auto;" class="ps-3 border-start ms-2 border-primary">
-                            </div>
-                    </div>
-                    <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
-                        <button type="button" onclick="submitCustomTaskUpdate()" class="btn btn-primary rounded-pill px-4 fw-bold shadow"><i class="fas fa-save me-1"></i> Lưu Cập Nhật</button>
-                    </div>
-                </form>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Loại task</label>
+              <select class="form-select" name="task_type">
+                <option value="GENERAL">Nội bộ</option>
+                <option value="SALES">Sales / Khách hàng</option>
+                <option value="DELIVERY">Giao hàng</option>
+                <option value="DOCUMENT">Chứng từ</option>
+                <option value="SUPPORT">Hỗ trợ kỹ thuật</option>
+              </select>
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="supervisorNoteModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-info">
-                <form id="supervisorNoteForm">
-                    <div class="modal-header bg-info-subtle">
-                        <h5 class="modal-title text-info-emphasis">Phản hồi của Cấp trên</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="note_log_id">
-                        <p>Đang phản hồi cho Log ID: <strong id="noteLogIdDisplay"></strong></p>
-                        <div class="mb-3">
-                            <label class="form-label">Nội dung chỉ đạo / Góp ý:</label>
-                            <textarea id="note_content" class="form-control" rows="3" required></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-info text-white">Gửi Phản hồi</button>
-                    </div>
-                </form>
+            <div class="col-md-8">
+              <label class="form-label fw-bold">Khách hàng (nếu có)</label>
+              <div class="position-relative">
+                <input type="text" class="form-control" id="create_object_id_input"
+                       placeholder="Nhập mã hoặc tên khách hàng…" autocomplete="off">
+                <select id="create_kh_search_results" size="5" style="display:none"
+                        class="create-kh-dropdown"></select>
+                <input type="hidden" name="object_id" id="create_object_id_selected">
+              </div>
             </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Hạn hoàn thành</label>
+              <input type="date" class="form-control" name="due_date"
+                     min="{{ current_date }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-bold">Mô tả chi tiết</label>
+              <textarea class="form-control" name="detail_content" rows="3"
+                        placeholder="Mô tả thêm về công việc, yêu cầu, hoặc lưu ý…"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-bold">File đính kèm</label>
+              <input type="file" class="form-control" name="attachments" multiple
+                     accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg">
+              <div class="form-text">Hỗ trợ: PDF, Word, Excel, ảnh. Tối đa 10MB/file.</div>
+            </div>
+          </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Tạo Task
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
+</div>
 
-    <div id="task-context" data-base-url="{{ url_for('task_bp.task_dashboard') }}" data-view-mode="{{ view_mode }}" data-active-filter="{{ active_filter }}"></div>
-    
-    <script id="task-data-daily" type="application/json">{{ kanban_tasks | default([]) | tojson | replace('NaN', 'null') | safe }}</script>
-    <script id="task-data-history" type="application/json">{{ history_tasks | default([]) | tojson | replace('NaN', 'null') | safe }}</script>
-    <script id="task-data-isadmin" type="application/json">{{ is_admin | tojson | safe }}</script>
+
+{# ── Modal: Cập nhật tiến độ ── #}
+<div class="modal fade" id="updateTaskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <span id="updateTaskIdDisplay" class="text-primary fw-bold">#—</span>
+          <span id="updateTaskTitleDisplay"
+                class="ms-2 text-muted fw-normal"
+                style="font-size:.9rem"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        {# Banner nhận việc (LUỒNG B — ASSIGNED) #}
+        <div id="accept_task_banner" class="d-none alert alert-warning mb-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+              <strong>📌 Bạn được giao việc này.</strong>
+              <div class="small mt-1">Bấm "Nhận việc" để bắt đầu, hoặc "Từ chối" nếu không thể thực hiện.</div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-warning btn-sm" onclick="acceptCurrentTask()">
+                <i class="fas fa-check me-1"></i> Nhận việc
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="declineCurrentTask()">
+                <i class="fas fa-times me-1"></i> Từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {# Banner từ chối #}
+        <div id="declined_task_banner" class="d-none alert alert-secondary mb-3">
+          <i class="fas fa-times-circle me-2"></i>Task này đã bị từ chối. Không thể cập nhật thêm.
+        </div>
+
+        {# Form chính #}
+        <div id="update_form_body">
+          <input type="hidden" id="update_task_id">
+          <input type="hidden" id="update_task_origin">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Khách hàng / Đối tượng</label>
+            <input type="text" class="form-control" id="update_object_id" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Tiến độ: <strong id="progress_label">0%</strong>
+            </label>
+            <input type="range" class="form-range" id="progress_range"
+                   min="0" max="100" step="5" value="0"
+                   oninput="document.getElementById('progress_label').innerText=this.value+'%;syncProgressPercent(document.getElementById('log_type_select').value)"
+                   oninput="document.getElementById('progress_label').innerText=this.value+'%';syncProgressPercent(document.getElementById('log_type_select').value)">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Loại cập nhật</label>
+            <select class="form-select" id="log_type_select"
+                    onchange="syncProgressPercent(this.value)">
+              <option value="PROGRESS">📊 Cập nhật tiến độ</option>
+              <option value="BLOCKED">🔒 Báo bị chặn</option>
+              <option value="REQUEST_CLOSE">✅ Yêu cầu đóng task</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Nội dung báo cáo <span class="text-danger">*</span>
+            </label>
+            <textarea class="form-control" id="update_detail_content" rows="4"
+                      placeholder="Mô tả tiến độ, vấn đề, kết quả…"></textarea>
+            <div class="text-danger small mt-1" id="update_content_error" style="display:none"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">File đính kèm</label>
+            <input type="file" class="form-control" id="update_attachment"
+                   accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg">
+          </div>
+
+          {# Help Call box #}
+          <div id="helperSelectionBox" style="display:none"
+               class="mb-3 p-3 border rounded bg-warning-subtle">
+            <label class="form-label fw-bold text-warning">
+              🆘 Gửi yêu cầu hỗ trợ đến:
+            </label>
+            <select class="form-select" id="helper_code_select" multiple size="6"></select>
+            <div class="form-text">Giữ Ctrl/Cmd để chọn nhiều người.</div>
+            <div class="text-danger small mt-1" id="update_helper_error" style="display:none"></div>
+          </div>
+        </div>
+
+        {# Approve block #}
+        <div id="approve_action_block" style="display:none" class="mb-3">
+          <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span>
+              <i class="fas fa-clock me-2"></i>
+              <strong>Task đang chờ duyệt.</strong> Bạn có muốn duyệt đóng?
+            </span>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm" onclick="approveTask(true)">
+                <i class="fas fa-thumbs-up me-1"></i> Duyệt
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="approveTask(false)">
+                <i class="fas fa-thumbs-down me-1"></i> Trả về
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {# Log history #}
+        <div class="mt-3">
+          <div class="fw-bold mb-2" style="font-size:.85rem">
+            <i class="fas fa-history me-2 text-secondary"></i>Lịch sử cập nhật
+          </div>
+          <div id="logHistoryContainer">
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-spinner fa-spin me-2"></i>Đang tải…
+            </div>
+          </div>
+        </div>
+
+        {# Cancel block #}
+        <div id="cancel_task_block" style="display:none" class="mt-3 text-end">
+          <button type="button" class="btn btn-outline-danger btn-sm"
+                  onclick="cancelCurrentTask()">
+            <i class="fas fa-ban me-1"></i> Hủy task này
+          </button>
+        </div>
+
+      </div>
+      <div class="modal-footer" id="update_controls">
+        <button type="button"
+                class="btn btn-outline-danger me-auto"
+                id="helpCallBtn"
+                onclick="toggleHelpBox()">
+          <i class="fas fa-headset me-1"></i> Cần hỗ trợ
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary" id="update_submit_btn"
+                onclick="submitCustomTaskUpdate()">
+          <span id="update_submit_text">
+            <i class="fas fa-save me-1"></i> Lưu Cập Nhật
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{# ── Modal: Phản hồi cấp trên ── #}
+<div class="modal fade" id="supervisorNoteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-comment-dots me-2 text-info"></i>
+          Chỉ đạo log <span id="noteLogIdDisplay" class="text-info">#—</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="supervisorNoteForm">
+        <input type="hidden" id="note_log_id">
+        <div class="modal-body">
+          <label class="form-label fw-bold">Nội dung chỉ đạo / phản hồi:</label>
+          <textarea class="form-control" id="note_content" rows="4"
+                    placeholder="Nhận xét, hướng dẫn, yêu cầu bổ sung…" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-info text-white">
+            <i class="fas fa-paper-plane me-1"></i> Gửi phản hồi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+{# ── Modal: Giao việc (LUỒNG B — manager/admin only) ── #}
+{% if can_manage_view %}
+<div class="modal fade" id="assignTaskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white" style="border-radius:16px 16px 0 0">
+        <h5 class="modal-title">
+          <i class="fas fa-paper-plane me-2"></i>Giao việc cho nhân viên
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-bold">
+              Giao cho <span class="text-danger">*</span>
+              <span class="badge bg-secondary ms-2" id="assign_selected_count">0 đã chọn</span>
+            </label>
+            <select class="form-select" id="assign_assignee_codes" multiple size="5">
+              {% for emp in eligible_assignees %}
+              <option value="{{ emp.USERCODE }}">{{ emp.USERCODE }} — {{ emp.SHORTNAME }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Giữ Ctrl/Cmd để chọn nhiều người.</div>
+            <div class="text-danger small mt-1" id="assign_assignee_error" style="display:none"></div>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label fw-bold">Tiêu đề <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="assign_title"
+                   placeholder="Mô tả công việc (tối thiểu 8 ký tự)" minlength="8">
+            <div class="text-danger small mt-1" id="assign_title_error" style="display:none"></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Loại task</label>
+            <select class="form-select" id="assign_task_type">
+              <option value="GENERAL">Nội bộ</option>
+              <option value="SALES">Sales</option>
+              <option value="DELIVERY">Giao hàng</option>
+              <option value="DOCUMENT">Chứng từ</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Hạn hoàn thành</label>
+            <input type="date" class="form-control" id="assign_due_date"
+                   min="{{ current_date }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold">Mô tả chi tiết</label>
+            <textarea class="form-control" id="assign_detail" rows="3"
+                      placeholder="Hướng dẫn, yêu cầu, tài liệu tham khảo…"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-danger" id="assign_submit_btn"
+                onclick="submitAssignTask()">
+          <span id="assign_submit_text">
+            <i class="fas fa-paper-plane me-1"></i> Giao việc
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}
 
+
 {% block scripts %}
-    <script src="https://cdn.datatables.net/v/bs5/dt-1.11.5/datatables.min.js"></script>
-    <script src="{{ url_for('static', filename='js/task_dashboard.js') }}"></script>
-    
-    <script>
-        let isHelpMode = false;
+<script src="{{ url_for('static', filename='js/task_dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/task_dashboard_modal.js') }}"></script>
+<script>
+/* ── Fix: Move tất cả modal ra body gốc để tránh bị clip bởi container-fluid ── */
+document.addEventListener('DOMContentLoaded', function(){
+  var modals = document.querySelectorAll('.modal');
+  modals.forEach(function(m){
+    if(m.parentElement !== document.body){
+      document.body.appendChild(m);
+    }
+  });
+});
+</script>
+<script>
+/* ════════════════════════════════════════════════════════
+   TASK DASHBOARD — runtime JS cần Jinja variables
+   (filter chips · sort · apply on load)
+   ════════════════════════════════════════════════════════ */
 
-        function syncProgressPercent(type) {
-            if (type === 'REQUEST_CLOSE') {
-                document.getElementById('progress_range').value = 100;
-                document.getElementById('progress_label').innerText = '100%';
-            }
-        }
+/* ── Filter chips — cần active_filter từ Jinja ── */
+var currentHistFilter='{{ active_filter }}';
+function setHistChip(el,status){
+  document.querySelectorAll('.fchip').forEach(function(c){c.classList.remove('active');});
+  if(el) el.classList.add('active');
+  currentHistFilter=status;
+  applyHistFilter();
+}
+function clearHistSearch(){
+  var inp=document.getElementById('hist-search');
+  if(inp) inp.value='';
+  applyHistFilter();
+}
+function applyHistFilter(){
+  var q=(document.getElementById('hist-search').value||'').toLowerCase().trim();
+  var rows=document.querySelectorAll('#hist-tbody tr');
+  var vis=0;
+  rows.forEach(function(row){
+    if(row.id==='hist-no-data'){row.style.display='';return;}
+    var st=row.dataset.status||'';
+    var srch=(row.dataset.search||'').toLowerCase();
+    var matchChip=
+      currentHistFilter==='ALL' ||
+      (currentHistFilter==='DONE'  && st==='COMPLETED')             ||
+      (currentHistFilter==='WIP'   && (st==='OPEN'||st==='PENDING'))||
+      (currentHistFilter==='WAIT'  && st==='WAITING_CONFIRM')       ||
+      (currentHistFilter==='STUCK' && st==='HELP_NEEDED')           ||
+      (currentHistFilter==='RCVD'  && st==='ASSIGNED');
+    var matchSearch=!q||srch.includes(q);
+    var show=matchChip&&matchSearch;
+    row.style.display=show?'':'none';
+    if(show) vis++;
+  });
+  var vc=document.getElementById('vis-count');
+  if(vc) vc.textContent=vis;
+  var em=document.getElementById('hist-empty');
+  if(em) em.style.display=(vis===0)?'block':'none';
+}
 
-        function toggleHelpBox() {
-            const box = document.getElementById('helperSelectionBox');
-            const btn = document.getElementById('helpCallBtn');
-            isHelpMode = !isHelpMode;
-            
-            if(isHelpMode) {
-                box.style.display = 'block';
-                btn.classList.replace('btn-outline-danger', 'btn-danger');
-                loadEligibleHelpers(); 
-            } else {
-                box.style.display = 'none';
-                btn.classList.replace('btn-danger', 'btn-outline-danger');
-            }
-        }
+/* ── Sort table ── */
+var sortState={col:-1,asc:true};
+function sortHistTable(col){
+  var tbody=document.getElementById('hist-tbody');
+  var rows=Array.from(tbody.querySelectorAll('tr')).filter(function(r){return r.id!=='hist-no-data';});
+  var ths=document.querySelectorAll('.hist-table thead th');
+  ths.forEach(function(th){th.classList.remove('s-asc','s-desc');});
+  var asc=(sortState.col===col)?!sortState.asc:true;
+  sortState={col:col,asc:asc};
+  ths[col].classList.add(asc?'s-asc':'s-desc');
+  rows.sort(function(a,b){
+    var ta=(a.cells[col]?a.cells[col].textContent:'').trim();
+    var tb=(b.cells[col]?b.cells[col].textContent:'').trim();
+    if(col===0){ta=parseInt(ta.replace('#',''))||0;tb=parseInt(tb.replace('#',''))||0;return asc?ta-tb:tb-ta;}
+    return asc?ta.localeCompare(tb,'vi'):tb.localeCompare(ta,'vi');
+  });
+  rows.forEach(function(r){tbody.appendChild(r);});
+}
 
-        async function loadEligibleHelpers() {
-            const select = document.getElementById('helper_code_select');
-            if (select.options.length > 0) return; 
-            try {
-                const res = await fetch('/api/get_eligible_helpers');
-                const data = await res.json();
-                
-                let html = '<optgroup label="GIAO CHO CẢ PHÒNG BAN">';
-                html += '<option value="DEPT_KỸ THUẬT">🏢 Cả phòng Kỹ Thuật</option>';
-                html += '<option value="DEPT_KHO">🏢 Cả phòng Kho</option>';
-                html += '<option value="DEPT_SALES">🏢 Cả phòng Sales</option>';
-                html += '<option value="DEPT_KẾ TOÁN">🏢 Cả phòng Kế Toán</option>';
-                html += '</optgroup>';
-
-                html += '<optgroup label="GIAO CHO CÁ NHÂN">';
-                data.forEach(h => { html += `<option value="${h.code}">👤 ${h.name}</option>`; });
-                html += '</optgroup>';
-                select.innerHTML = html;
-            } catch(e) { console.error("Lỗi load danh sách helper", e); }
-        }
-
-        async function submitCustomTaskUpdate() {
-            const taskId = document.getElementById('update_task_id').value;
-            let type = document.getElementById('log_type_select').value;
-            const progress = document.getElementById('progress_range').value;
-            const content = document.getElementById('update_detail_content').value; 
-            const objectId = document.getElementById('update_object_id').value;
-
-            if (progress == 100) type = 'REQUEST_CLOSE';
-
-            let helperCodes = [];
-            if (isHelpMode) {
-                type = 'HELP_CALL'; 
-                const select = document.getElementById('helper_code_select');
-                helperCodes = Array.from(select.selectedOptions).map(opt => opt.value);
-                if (helperCodes.length === 0) return alert("Vui lòng chọn ít nhất 1 người/phòng ban để giao việc!");
-            }
-
-            if (!content.trim()) return alert("Vui lòng nhập nội dung báo cáo!");
-
-            const formData = new FormData();
-            formData.append('task_id', taskId);
-            formData.append('log_type', type);
-            formData.append('progress_percent', progress);
-            formData.append('content', content);
-            formData.append('object_id', objectId);
-            formData.append('helper_codes', JSON.stringify(helperCodes));
-
-            const fileInput = document.getElementById('update_attachment');
-            if (fileInput && fileInput.files.length > 0) {
-                formData.append('attachment', fileInput.files[0]);
-            }
-
-            try {
-                const res = await fetch('/api/task/log_progress', { method: 'POST', body: formData });
-                const result = await res.json();
-                if (result.success) location.reload(); else alert("Lỗi: " + result.message);
-            } catch (error) {
-                alert("Lỗi kết nối tới Server!");
-            }
-        }
-
-        async function approveTask(isApproved) {
-            const taskId = document.getElementById('update_task_id').value;
-            const feedback = prompt("Nhập nhận xét / chỉ đạo của sếp (Bắt buộc nếu từ chối):");
-            if (!isApproved && !feedback) return alert("Cần nhập lý do từ chối!");
-
-            const res = await fetch('/api/task/approve', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task_id: taskId, is_approved: isApproved, feedback: feedback || 'Duyệt. OK!' })
-            });
-            const result = await res.json();
-            if (result.success) location.reload(); else alert("Lỗi: " + result.message);
-        }
-
-        async function openUpdateModal(taskId) {
-            try {
-                document.getElementById('update_task_id').value = taskId;
-                document.getElementById('updateTaskIdDisplay').innerText = "#" + taskId;
-                
-                const dailyTasksStr = document.getElementById('task-data-daily').textContent;
-                const historyTasksStr = document.getElementById('task-data-history').textContent;
-                const dailyTasks = dailyTasksStr ? JSON.parse(dailyTasksStr) : [];
-                const historyTasks = historyTasksStr ? JSON.parse(historyTasksStr) : [];
-                const task = [...dailyTasks, ...historyTasks].find(t => t.TaskID == taskId);
-                
-                if (task) {
-                    document.getElementById('update_object_id').value = task.ObjectID || '';
-                    document.getElementById('updateTaskTitleDisplay').innerText = task.Title || '';
-                }
-                
-                isHelpMode = false;
-                const helperBox = document.getElementById('helperSelectionBox');
-                if(helperBox) helperBox.style.display = 'none';
-                
-                const helpCallBtn = document.getElementById('helpCallBtn');
-                if(helpCallBtn) helpCallBtn.classList.replace('btn-danger', 'btn-outline-danger');
-                
-                const attachInput = document.getElementById('update_attachment');
-                if(attachInput) attachInput.value = ''; 
-                
-                const isAdminStr = document.getElementById('task-data-isadmin').textContent;
-                const isAdmin = isAdminStr ? JSON.parse(isAdminStr) : false;
-                const approveBlock = document.getElementById('approve_action_block');
-                if(approveBlock) approveBlock.style.display = isAdmin ? 'block' : 'none';
-
-                const container = document.getElementById('logHistoryContainer');
-                container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Đang tải dữ liệu...</div>';
-
-                const modalEl = document.getElementById('updateTaskModal');
-                if (typeof bootstrap !== 'undefined') {
-                    let modal = bootstrap.Modal.getInstance(modalEl);
-                    if (!modal) modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-                } else if (typeof $ !== 'undefined') {
-                    $(modalEl).modal('show');
-                }
-
-                const logRes = await fetch(`/api/task/history/${taskId}`);
-                
-                // [FIX LỖI .map is not a function] - Kiểm tra API trả về có đúng là Mảng (Array) không
-                if (!logRes.ok) throw new Error("API History phản hồi lỗi.");
-                const logs = await logRes.json();
-                
-                if (!Array.isArray(logs)) {
-                    container.innerHTML = '<div class="text-center text-danger py-3">Lỗi dữ liệu lịch sử từ Server.</div>';
-                    return;
-                }
-                
-                container.innerHTML = logs.map(log => `
-                    <div class="timeline-item mb-3">
-                        <div class="timeline-marker mt-1"></div>
-                        <div class="d-flex justify-content-between align-items-start mb-1 ms-3">
-                            <span class="badge bg-secondary">${log.UserShortName || log.UserCode}</span>
-                            <small class="text-muted">${log.UpdateDate ? new Date(log.UpdateDate).toLocaleString('vi-VN') : ''}</small>
-                        </div>
-                        <div class="ps-3 py-1 ms-2" style="font-size: 0.95rem;">
-                            <strong><i class="fas fa-angle-right text-muted me-1"></i></strong> ${log.UpdateContent || ''}
-                        </div>
-                        ${log.SupervisorFeedback ? `
-                            <div class="mt-2 ms-4 p-2 bg-warning-subtle border-start border-warning border-4 rounded shadow-sm">
-                                <div class="fw-bold text-danger mb-1" style="font-size: 0.8rem;"><i class="fas fa-reply me-1"></i>SẾP CHỈ ĐẠO:</div>
-                                <div class="text-dark fst-italic" style="font-size: 0.9rem;">${log.SupervisorFeedback}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `).join('') || '<div class="text-center text-muted py-3">Chưa có lịch sử cập nhật.</div>';
-
-            } catch (err) {
-                console.error("Lỗi khi mở modal:", err);
-                const container = document.getElementById('logHistoryContainer');
-                if(container) container.innerHTML = '<div class="text-center text-danger py-3">Không thể tải lịch sử. Mã lỗi 500 từ Server.</div>';
-            }
-        }
-
-        // --- AUTOCOMPLETE KHÁCH HÀNG ---
-        const searchInput = document.getElementById('create_object_id_input');
-        const searchResults = document.getElementById('create_kh_search_results');
-        const hiddenInput = document.getElementById('create_object_id_selected');
-        let searchTimeout;
-
-        if (searchInput && searchResults) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                const query = this.value.trim();
-                
-                if (query.length < 2) {
-                    searchResults.style.display = 'none';
-                    return;
-                }
-
-                searchTimeout = setTimeout(async () => {
-                    try {
-                        const res = await fetch(`/api/search_customer?q=${encodeURIComponent(query)}`); 
-                        if (!res.ok) throw new Error("API not found");
-                        const data = await res.json();
-                        
-                        searchResults.innerHTML = '';
-                        if (data && data.length > 0) {
-                            data.forEach(item => {
-                                const option = document.createElement('option');
-                                option.value = item.ObjectID || item.id; 
-                                option.textContent = `${item.ObjectID || item.id} - ${item.ClientName || item.name}`;
-                                option.className = "p-2 border-bottom";
-                                searchResults.appendChild(option);
-                            });
-                            searchResults.style.display = 'block';
-                        } else {
-                            searchResults.style.display = 'none';
-                        }
-                    } catch (error) {
-                        console.log("Sử dụng Autocomplete gốc.");
-                    }
-                }, 300);
-            });
-
-            searchResults.addEventListener('click', function(e) {
-                if(e.target.tagName === 'OPTION') {
-                    searchInput.value = e.target.textContent; 
-                    hiddenInput.value = e.target.value;       
-                    this.style.display = 'none';
-                }
-            });
-
-            document.addEventListener('click', function(e) {
-                if (e.target !== searchInput && e.target !== searchResults) {
-                    searchResults.style.display = 'none';
-                }
-            });
-        }
-    </script>
+/* ── Auto-open accordion & apply filter if needed ── */
+document.addEventListener('DOMContentLoaded', function(){
+  {% if text_search_term %}
+  if(!histOpen) toggleHist();
+  {% endif %}
+  {% if text_search_term or active_filter != 'ALL' %}
+  applyHistFilter();
+  {% endif %}
+});
+</script>
 {% endblock %}

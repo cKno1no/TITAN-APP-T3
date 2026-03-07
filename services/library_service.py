@@ -58,7 +58,7 @@ class LibraryService:
         try:
             res = model.generate_content(prompt)
             return res.text.strip()
-        except:
+        except Exception:
             return "Tài liệu đào tạo nội bộ."
 
     # --- 2. CHAT VỚI TÀI LIỆU (RAG MINI) ---

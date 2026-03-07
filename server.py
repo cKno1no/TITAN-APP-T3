@@ -107,17 +107,22 @@ def run_grading_job():
 # =========================================================================
 if __name__ == '__main__':
     logger_setup()
-    
-    import socket
-    
-    # [QUAN TRỌNG] Sếp điền cái tên máy chủ vừa lấy ở Bước 1 vào đây nhé!
-    PROD_SERVER_NAME = "ĐIỀN_TÊN_MÁY_CHỦ_VÀO_ĐÂY" 
-    
-    current_machine = socket.gethostname()
 
-    # CHỈ BẬT CRONJOB NẾU ĐANG CHẠY TRÊN ĐÚNG MÁY CHỦ
-    if current_machine == PROD_SERVER_NAME:
-        print(f"✅ Phát hiện Máy chủ ({current_machine}): Đang bật hệ thống Cronjob...")
+    import socket
+
+    # [CẤU HÌNH SCHEDULER]
+    # - Mặc định: chạy cron job trên chính máy đang chạy server.py
+    # - Có thể override bằng biến môi trường:
+    #   + PROD_SERVER_NAME: tên máy chủ được phép chạy cron
+    #   + ENABLE_SCHEDULER=0: tắt toàn bộ cron (kể cả khi tên máy trùng)
+    current_machine = socket.gethostname()
+    configured_prod = os.getenv("PROD_SERVER_NAME")
+    PROD_SERVER_NAME = configured_prod or current_machine
+    enable_scheduler = os.getenv("ENABLE_SCHEDULER", "1").strip() == "1"
+
+    # CHỈ BẬT CRONJOB NẾU ĐANG CHẠY TRÊN ĐÚNG MÁY CHỦ VÀ KHÔNG BỊ TẮT BẰNG ENV
+    if enable_scheduler and current_machine == PROD_SERVER_NAME:
+        print(f"✅ Scheduler bật trên máy ({current_machine}) – Daily Challenge / AI chấm điểm sẽ chạy theo lịch.")
         
         # --- CẤU HÌNH APSCHEDULER ---
         scheduler = BackgroundScheduler()
@@ -137,8 +142,8 @@ if __name__ == '__main__':
         
         scheduler.start()
     else:
-        # NẾU LÀ MÁY DEV (PC CỦA SẾP) THÌ TẮT CRONJOB ĐỂ TRÁNH GỬI TRÙNG
-        print(f"⚠️ Phát hiện Máy DEV ({current_machine}): ĐÃ TẮT TỰ ĐỘNG CRONJOB.")
+        reason = "ENABLE_SCHEDULER=0" if not enable_scheduler else f"hostname ({current_machine}) khác PROD_SERVER_NAME ({PROD_SERVER_NAME})"
+        print(f"⚠️ Cronjob Daily Challenge / AI grading đang TẮT (lý do: {reason}).")
 
     # --- KHỞI CHẠY SERVER WEBSITES ---
     print("-------------------------------------------------------")

@@ -3,88 +3,117 @@
 
 {% block extra_css %}
 <style>
-    .audit-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border-radius: 1rem; padding: 1.5rem; color: white;
+    .audit-hero-strip {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 12px 20px; margin-bottom: 20px;
+        background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; font-size: 0.9rem;
     }
-    .table-audit { font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem; }
-    .table-audit tbody tr { border-bottom: 1px solid #f1f5f9; }
-    
-    /* Highlight theo Tab */
-    .tab-active { border-bottom: 3px solid #3b82f6 !important; color: #3b82f6 !important; font-weight: bold; }
-    .nav-link { cursor: pointer; color: #64748b; transition: all 0.3s; }
-    .nav-link:hover { color: #3b82f6; }
+    .audit-hero-strip .hero-label { color: var(--secondary); font-weight: 600; }
+    .audit-hero-strip .hero-val { font-weight: 800; color: var(--text-dark); }
+    .audit-hero-strip .hero-dot { opacity: 0.5; margin: 0 4px; }
 
-    /* Mức độ Log */
-    .row-INFO { color: #64748b; } 
-    .row-WARNING { background-color: #fffbeb !important; color: #b45309; font-weight: 500; }
-    .row-CRITICAL { background-color: #fef2f2 !important; color: #b91c1c; font-weight: bold; border-left: 4px solid #ef4444;}
-    
-    .badge-severity { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;}
-    .badge-INFO { background: #e2e8f0; color: #475569; }
-    .badge-WARNING { background: #fde68a; color: #d97706; }
-    .badge-CRITICAL { background: #fca5a5; color: #991b1b; }
+    .audit-command-bar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; padding: 16px 20px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+    .audit-command-bar .form-label { margin-bottom: 0; font-size: 0.8rem; font-weight: 600; color: var(--secondary); }
+
+    .table-audit { font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem; }
+    .table-audit tbody tr { border-bottom: 1px solid var(--border-color); }
+    .table-audit thead th {
+        position: sticky; top: 0; z-index: 10; background: var(--input-bg) !important;
+        color: var(--secondary) !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;
+        border-bottom: 2px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .tab-active { border-bottom: 3px solid var(--primary) !important; color: var(--primary) !important; font-weight: bold; }
+    .nav-link { cursor: pointer; color: var(--secondary); transition: all 0.3s; }
+    .nav-link:hover { color: var(--primary); }
+
+    .row-INFO { color: var(--secondary); }
+    .row-WARNING { background-color: rgba(255, 181, 71, 0.12) !important; color: #b45309; font-weight: 500; }
+    .row-CRITICAL { background-color: rgba(227, 26, 26, 0.08) !important; color: var(--danger); font-weight: bold; border-left: 4px solid var(--danger); }
+
+    .badge-severity { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; }
+    .badge-INFO { background: var(--input-bg); color: var(--secondary); }
+    .badge-WARNING { background: rgba(255, 181, 71, 0.25); color: #d97706; }
+    .badge-CRITICAL { background: rgba(227, 26, 26, 0.15); color: var(--danger); }
 
     .details-cell { max-width: 450px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-    .sticky-top { top: 0; z-index: 1020; background: white; }
+    .empty-state-audit { padding: 3rem 1rem; text-align: center; color: var(--secondary); }
+    .empty-state-audit i { font-size: 2.5rem; opacity: 0.35; margin-bottom: 0.75rem; }
+    .modal-breadcrumb { font-size: 0.8rem; color: var(--secondary); font-weight: 500; }
 </style>
+{% endblock %}
+
+{% block page_title %}<i class="fas fa-eye me-2 text-warning"></i> Trung tâm Giám sát "Mắt Thần"{% endblock %}
+{% block page_sub %}Truy vết hành vi người dùng và nhật ký API hệ thống.{% endblock %}
+
+{% block header_actions %}
+<a href="/" class="btn btn-back"><i class="fas fa-home me-2"></i>Portal</a>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4" x-data="auditApp()" x-init="init()">
-    
-    <div class="audit-header mb-4 d-flex justify-content-between align-items-center shadow-sm">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fas fa-eye me-2 text-warning"></i>TRUNG TÂM GIÁM SÁT "MẮT THẦN"</h4>
-            <p class="mb-0 text-white-50 small">Truy vết hành vi người dùng và nhật ký API hệ thống.</p>
-        </div>
-        <div class="d-flex gap-2 bg-white p-2 rounded-3 shadow-sm">
-            <input type="date" x-model="dateFrom" class="form-control form-control-sm border-0 bg-light">
-            <span class="text-dark align-self-center fw-bold">-</span>
-            <input type="date" x-model="dateTo" class="form-control form-control-sm border-0 bg-light">
-            <button class="btn btn-primary btn-sm fw-bold px-3" @click="fetchLogs()">
-                <i class="fas fa-sync-alt me-1"></i> Tải lại
-            </button>
-        </div>
+    <div class="audit-hero-strip">
+        <span class="hero-label">Tab</span>
+        <span class="hero-val" x-text="activeTab === 'BUSINESS' ? 'Log Nghiệp vụ' : 'Log Hệ thống'"></span>
+        <span class="hero-dot">•</span>
+        <span class="hero-label">Từ</span>
+        <span class="hero-val" x-text="dateFrom"></span>
+        <span class="hero-dot">•</span>
+        <span class="hero-label">Đến</span>
+        <span class="hero-val" x-text="dateTo"></span>
+        <span class="hero-dot">•</span>
+        <span class="hero-label">Mức độ</span>
+        <span class="hero-val" x-text="severity || 'Tất cả'"></span>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-header bg-white border-0 p-0">
-            <ul class="nav nav-justified border-bottom">
+    <div class="card border-0 shadow-sm rounded-4 mb-4" style="border: 1px solid var(--border-color) !important; overflow: hidden;">
+        <div class="card-header border-0 p-0" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+            <ul class="nav nav-justified border-bottom mb-0">
                 <li class="nav-item">
                     <a class="nav-link py-3" :class="activeTab === 'BUSINESS' ? 'tab-active' : ''" @click="switchTab('BUSINESS')">
-                        <i class="fas fa-user-shield me-2"></i> 🚀 LOG NGHIỆP VỤ (Hành vi User)
+                        <i class="fas fa-user-shield me-2"></i> Log Nghiệp vụ (Hành vi User)
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link py-3" :class="activeTab === 'SYSTEM' ? 'tab-active' : ''" @click="switchTab('SYSTEM')">
-                        <i class="fas fa-robot me-2"></i> ⚙️ LOG HỆ THỐNG (API & Middleware)
+                        <i class="fas fa-robot me-2"></i> Log Hệ thống (API & Middleware)
                     </a>
                 </li>
             </ul>
         </div>
 
-        <div class="card-body bg-light border-bottom py-2">
-            <div class="row g-2">
-                <div class="col-md-3">
-                    <select x-model="severity" class="form-select form-select-sm" @change="fetchLogs()">
-                        <option value="">🎯 Tất cả mức độ</option>
-                        <option value="CRITICAL">🔴 Critical (Xóa/Quyền)</option>
-                        <option value="WARNING">🟠 Warning (Lỗi/Cảnh báo)</option>
-                        <option value="INFO">⚪ Info (Thông thường)</option>
+        <div class="audit-command-bar">
+            <div class="d-flex align-items-end flex-wrap gap-3 flex-grow-1">
+                <div>
+                    <label class="form-label d-block">Từ ngày</label>
+                    <input type="date" x-model="dateFrom" class="form-control form-control-sm" style="min-width: 140px;">
+                </div>
+                <div>
+                    <label class="form-label d-block">Đến ngày</label>
+                    <input type="date" x-model="dateTo" class="form-control form-control-sm" style="min-width: 140px;">
+                </div>
+                <div>
+                    <label class="form-label d-block">Mức độ</label>
+                    <select x-model="severity" class="form-select form-select-sm" style="min-width: 160px;" @change="fetchLogs()">
+                        <option value="">Tất cả</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="WARNING">Warning</option>
+                        <option value="INFO">Info</option>
                     </select>
                 </div>
-                <div class="col-md-9">
-                    <input type="text" x-model="search" class="form-control form-control-sm" 
-                           placeholder="🔍 Tìm theo Mã NV, Action hoặc nội dung chi tiết..." @keyup.enter="fetchLogs()">
+                <div class="flex-grow-1" style="min-width: 200px;">
+                    <label class="form-label d-block">Tìm (Mã NV, Action...)</label>
+                    <input type="text" x-model="search" class="form-control form-control-sm" placeholder="Gõ rồi Enter..." @keyup.enter="fetchLogs()">
                 </div>
+                <button class="btn btn-primary btn-sm fw-bold px-4" @click="fetchLogs()">
+                    <i class="fas fa-sync-alt me-1"></i> Tải lại
+                </button>
             </div>
         </div>
 
         <div class="card-body p-0">
             <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
                 <table class="table table-audit mb-0 align-middle table-hover">
-                    <thead class="bg-white text-muted text-uppercase sticky-top" style="font-size: 0.75rem; border-bottom: 2px solid #e2e8f0;">
+                    <thead>
                         <tr>
                             <th class="ps-4">Thời gian</th>
                             <th>Mức độ</th>
@@ -99,7 +128,13 @@
                             <tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
                         </template>
                         <template x-if="!isLoading && logs.length === 0">
-                            <tr><td colspan="6" class="text-center py-5 text-muted">Không tìm thấy dữ liệu phù hợp.</td></tr>
+                            <tr>
+                                <td colspan="6" class="empty-state-audit">
+                                    <i class="fas fa-inbox d-block"></i>
+                                    Không tìm thấy dữ liệu phù hợp.
+                                    <div class="mt-3"><a href="/" class="btn btn-outline-primary btn-sm rounded-pill"><i class="fas fa-home me-1"></i>Về Portal</a></div>
+                                </td>
+                            </tr>
                         </template>
                         <template x-for="log in logs" :key="log.LogID">
                             <tr :class="'row-' + log.Severity">
@@ -123,27 +158,29 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white border-0 py-2">
-            <small class="text-muted">Hiển thị tối đa 1000 bản ghi mới nhất trong khoảng thời gian đã chọn.</small>
+        <div class="card-footer border-0 py-2" style="background: var(--card-bg); border-top: 1px solid var(--border-color) !important;">
+            <small class="text-secondary">Hiển thị tối đa 1000 bản ghi mới nhất trong khoảng thời gian đã chọn.</small>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="jsonModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header bg-dark text-white rounded-top-4">
-                <h6 class="modal-title font-monospace"><i class="fas fa-laptop-code me-2"></i> Truy vết Chi tiết (Log Details)</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <div class="modal-content border-0 shadow-lg rounded-4" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header rounded-top-4" style="background: var(--primary); color: white;">
+                <div>
+                    <div class="modal-breadcrumb mb-1" style="color: rgba(255,255,255,0.8);">Nhật ký → Chi tiết payload</div>
+                    <h6 class="modal-title mb-0 font-monospace"><i class="fas fa-laptop-code me-2"></i> Log Details</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
-            <div class="modal-body bg-light p-0">
+            <div class="modal-body p-0" style="background: var(--input-bg);">
                 <pre class="m-0 p-4" style="max-height: 50vh; overflow-y: auto;"><code id="jsonContent" class="text-dark" style="font-size: 0.85rem; white-space: pre-wrap;"></code></pre>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <script>
     function auditApp() {
         return {

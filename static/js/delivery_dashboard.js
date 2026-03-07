@@ -117,14 +117,37 @@ function updateStatus(newStatus) {
     .then(response => response.json())
     .then(data => { 
         if (data.success) { 
-            alert(`Đã cập nhật trạng thái: ${newStatus}`); 
             confirmModal.hide(); 
-            location.reload(); 
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã cập nhật',
+                    text: `Đã cập nhật trạng thái LXH #${voucherId} → ${newStatus}`,
+                    timer: 2200,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                }).then(() => { location.reload(); });
+            } else {
+                alert(`Đã cập nhật trạng thái: ${newStatus}`);
+                location.reload();
+            }
         } else { 
-            alert('Lỗi: ' + data.message); 
+            if (window.Swal) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Không thể cập nhật trạng thái.' });
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
         } 
     })
-    .catch(e => alert('Lỗi kết nối: ' + e.message));
+    .catch(e => {
+        if (window.Swal) {
+            Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: e.message || 'Không thể kết nối máy chủ.' });
+        } else {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    });
 }
 
 // --- LOGIC KÉO THẢ (DRAG & DROP) ---
@@ -186,7 +209,8 @@ function savePlannedDay(voucherId, objectId, newDay, oldDay, element, targetColu
     .then(data => {
         if (data.success) { 
             targetColumn.querySelector('.task-list').appendChild(element); 
-            element.dataset.originalDay = newDay; 
+            element.dataset.originalDay = newDay;
+            updatePlannerStatusStrip();
         } else { 
             alert('Lỗi khi lưu kế hoạch: ' + data.message); 
             location.reload(); 
@@ -286,6 +310,21 @@ function populatePlannerBoard() {
             if (column) column.innerHTML += createDeliveryCard(item);
         }
     });
+    updatePlannerStatusStrip();
+}
+
+function updatePlannerStatusStrip() {
+    const getCount = id => (document.querySelector(`#${id}`) || {}).querySelectorAll ? document.querySelector(`#${id}`).querySelectorAll('.delivery-card').length : 0;
+    const pool = getCount('task-list-POOL');
+    const urgent = getCount('task-list-URGENT');
+    let week = getCount('task-list-WITHIN_WEEK');
+    ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'].forEach(day => { week += getCount('task-list-' + day); });
+    const completed = getCount('task-list-COMPLETED');
+    const el = id => document.getElementById(id);
+    if (el('strip-count-pool')) el('strip-count-pool').textContent = pool;
+    if (el('strip-count-urgent')) el('strip-count-urgent').textContent = urgent;
+    if (el('strip-count-week')) el('strip-count-week').textContent = week;
+    if (el('strip-count-completed')) el('strip-count-completed').textContent = completed;
 }
 
 // Gán sự kiện cho Tab 2

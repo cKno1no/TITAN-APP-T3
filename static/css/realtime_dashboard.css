@@ -1,0 +1,195 @@
+/**
+ * Realtime Dashboard - Thời gian thực
+ * Styles tách từ template + ý tưởng đột phá (hero strip, filter gọn, KPI sống, bảng dễ quét)
+ */
+
+/* --- HERO STRIP (tóm tắt 1 dòng) --- */
+.realtime-hero-strip {
+    background: linear-gradient(135deg, rgba(67, 24, 255, 0.08) 0%, rgba(67, 24, 255, 0.02) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 20px;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.realtime-hero-strip .hero-label { color: var(--secondary); font-weight: 600; }
+.realtime-hero-strip .hero-value { font-weight: 700; color: var(--primary); }
+
+/* --- FILTER INLINE (gọn, không chiếm card) --- */
+.realtime-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+}
+.realtime-filter-bar .form-select {
+    min-width: 220px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-dark);
+    padding: 10px 14px;
+}
+.realtime-filter-bar .btn-primary {
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 600;
+}
+
+/* --- KPI CARDS --- */
+.realtime-kpi-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    border-left: 6px solid transparent;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.realtime-kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+.realtime-kpi-card .kpi-title {
+    color: var(--secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+}
+.realtime-kpi-card .kpi-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 4px;
+}
+.realtime-kpi-card .kpi-unit {
+    font-size: 0.88rem;
+    color: var(--secondary);
+    font-weight: 500;
+}
+.realtime-kpi-card.border-success { border-left-color: var(--success); }
+.realtime-kpi-card.border-warning { border-left-color: var(--warning); }
+.realtime-kpi-card.border-primary { border-left-color: var(--primary); }
+.realtime-kpi-card.border-danger { border-left-color: var(--danger); }
+
+/* --- MAIN CARDS (bảng) --- */
+.realtime-main-card {
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    overflow: hidden;
+    height: 100%;
+}
+.realtime-main-card .card-header-custom {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--card-bg);
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    color: var(--text-dark);
+}
+.realtime-main-card .card-header-custom i { margin-right: 10px; font-size: 1.15rem; }
+
+/* --- TABLES --- */
+.realtime-main-card .table {
+    margin-bottom: 0;
+}
+.realtime-main-card .table thead th {
+    background: var(--input-bg) !important;
+    color: var(--secondary);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid var(--border-color);
+    padding: 14px 16px;
+    white-space: nowrap;
+}
+.realtime-main-card .table tbody td {
+    vertical-align: middle;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-dark);
+}
+.realtime-main-card .table-row-link {
+    transition: background 0.15s;
+}
+.realtime-main-card .table-row-link:hover td {
+    background: var(--input-bg);
+    cursor: pointer;
+}
+.realtime-main-card .table-row-link:hover td:first-child {
+    border-left: 3px solid var(--primary);
+}
+.realtime-main-card .table .font-monospace {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Sticky header khi scroll (trong table-responsive) */
+.realtime-main-card .table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.realtime-main-card .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    box-shadow: 0 1px 0 var(--border-color);
+}
+
+/* --- EMPTY STATE --- */
+.realtime-empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--secondary);
+}
+.realtime-empty-state .realtime-empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+    margin-bottom: 12px;
+}
+.realtime-empty-state p { margin: 0; font-size: 0.95rem; }
+
+/* --- MODAL --- */
+.realtime-modal .modal-content {
+    border-radius: 20px;
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+.realtime-modal .modal-header {
+    background: var(--input-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 24px;
+}
+.realtime-modal .modal-title { color: var(--text-dark); font-weight: 700; }
+.realtime-modal .modal-body { color: var(--text-dark); padding: 0; }
+
+@media (max-width: 768px) {
+    .realtime-main-card .table-responsive { overflow-x: auto; }
+    .realtime-main-card .table thead th,
+    .realtime-main-card .table tbody td { white-space: nowrap; }
+    .realtime-kpi-card .kpi-value { font-size: 1.5rem; }
+    .realtime-filter-bar { flex-direction: column; align-items: stretch; }
+    .realtime-filter-bar .form-select { min-width: 100%; }
+}

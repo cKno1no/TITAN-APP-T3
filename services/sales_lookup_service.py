@@ -169,7 +169,7 @@ class SalesLookupService:
             if pd.isna(date_val) or not isinstance(date_val, (datetime, pd.Timestamp)):
                 return '—'
             return date_val.strftime('%d/%m/%Y')
-        except:
+        except Exception:
             return '—'
 
     def _get_block1_data(self, sp_item_search_param, object_id_param):

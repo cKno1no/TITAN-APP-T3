@@ -4,31 +4,48 @@
 
 {% block content %}
 <style>
-    /* Chế độ Focus: Ẩn Header/Sidebar/Footer */
     .page-header, .sidebar, .main-footer, .navbar { display: none !important; }
     .container-fluid { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
-    body { overflow: hidden; background: #2b2d31; font-family: 'Inter', sans-serif; } 
-    
+    body { overflow: hidden; background: #2b2d31; font-family: 'Inter', sans-serif; }
     .study-wrapper { display: flex; height: 100vh; width: 100vw; }
-    .viewer-column { flex-grow: 1; display: flex; flex-direction: column; background: #525659; position: relative; }
-    .sidebar-column { width: 400px; min-width: 400px; background: white; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
+    .viewer-column { flex-grow: 1; display: flex; flex-direction: column; background: linear-gradient(180deg, #4a4d52 0%, #3d4045 100%); position: relative; }
+    .sidebar-column { width: 400px; min-width: 400px; background: white; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); transition: width 0.25s, min-width 0.25s; }
+    .sidebar-column.collapsed { width: 56px; min-width: 56px; }
+    .sidebar-column.collapsed .sidebar-collapse-content { display: none !important; }
+    .sidebar-column.collapsed .sidebar-collapse-mini { display: flex !important; }
 
-    .study-toolbar { background: #333639; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    .study-toolbar { background: #333639; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; flex-wrap: wrap; gap: 8px; }
+    .study-progress-strip { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: rgba(255,255,255,0.9); }
+    .study-progress-strip .strip-dot { opacity: 0.6; }
+    .study-progress-strip .strip-quiz-open { color: #05cd99; }
+    .study-progress-strip .strip-quiz-lock { color: #ffb547; }
 
-    /* CSS cho vòng tròn tiến độ */
+    .material-viewport-inner { background: #5a5d62; padding: 24px; border-radius: 8px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.2); display: inline-flex; }
+    #pdf-wrapper canvas, .pdf-canvas-wrap { border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); background: #fff; }
     .circular-chart { width: 40px; height: 40px; }
     .circle-bg { fill: none; stroke: #eee; stroke-width: 3.8; }
     .circle { fill: none; stroke-width: 2.8; stroke-linecap: round; stroke: #0d6efd; transition: stroke-dasharray 0.3s; }
-    
     #chat-history { background: #f8f9fa; scroll-behavior: smooth; }
     .msg-bubble { padding: 12px 16px; border-radius: 15px; font-size: 0.9rem; line-height: 1.5; max-width: 90%; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .msg-ai { background: white; border: 1px solid #dee2e6; color: #212529; }
     .msg-user { background: #0d6efd; color: white; margin-left: auto; }
-    
-    /* Quiz Option Styling */
+    .msg-typing-skeleton { padding: 14px 16px; border-radius: 15px; background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%); background-size: 200% 100%; animation: skeleton-shine 1.2s infinite; }
+    @keyframes skeleton-shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .quick-prompt-btn { transition: transform 0.15s, background 0.15s; }
+    .quick-prompt-btn:hover { transform: scale(1.02); background: rgba(13, 110, 253, 0.08) !important; }
+    .quick-prompt-btn.sent { background: rgba(5, 205, 153, 0.12) !important; color: #059669; border-color: rgba(5, 205, 153, 0.4); pointer-events: none; }
     .quiz-option { cursor: pointer; transition: all 0.2s; border: 1px solid #dee2e6; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; }
     .quiz-option:hover { background-color: #f8f9fa; border-color: #0d6efd; }
     .quiz-option.active { background-color: #e7f1ff; border-color: #0d6efd; font-weight: bold; }
+    .btn-quiz-lock { transition: box-shadow 0.3s, transform 0.2s; }
+    .btn-quiz-unlock { animation: quiz-unlock-pulse 0.6s ease-out; }
+    @keyframes quiz-unlock-pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 205, 153, 0.5); } 50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(5, 205, 153, 0); } 100% { transform: scale(1); } }
+    .teaching-slots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+    .teaching-slot { width: 10px; height: 10px; border-radius: 50%; background: #0dcaf0; transition: background 0.2s; }
+    .teaching-slot.used { background: #dee2e6; }
+    .sidebar-collapse-mini { display: none; flex-direction: column; align-items: center; padding: 12px 8px; gap: 8px; }
+    .sidebar-collapse-mini .circular-chart { width: 32px; height: 32px; }
+    .sidebar-collapse-mini #read-percent { font-size: 0.6rem; }
 </style>
 
 <div class="study-wrapper" x-data="studyRoom()">
@@ -41,28 +58,33 @@
                     <small class="text-muted" style="font-size: 0.7rem;">ID: {{ material.MaterialID }}</small>
                 </div>
             </div>
-
+            <div class="study-progress-strip">
+                <span>Bài <span id="strip-lesson">·</span> · Đã đọc <strong id="strip-percent">0</strong>%</span>
+                <span class="strip-dot">·</span>
+                <span id="strip-quiz-label" class="strip-quiz-lock">Quiz: Khóa</span>
+            </div>
             <div class="d-flex align-items-center" x-show="isPdf">
                 <button class="btn btn-sm btn-dark mx-1" onclick="changePage(-1)"><i class="fas fa-chevron-left"></i></button>
                 <span class="mx-2 small">Trang <span id="page_num">1</span> / <span id="page_count">--</span></span>
                 <button class="btn btn-sm btn-dark mx-1" onclick="changePage(1)"><i class="fas fa-chevron-right"></i></button>
             </div>
-            
             <button class="btn btn-sm btn-outline-light border-0" onclick="toggleFullScreen()"><i class="fas fa-expand"></i></button>
         </div>
 
-        <div id="material-viewport" class="flex-grow-1 overflow-auto d-flex justify-content-center p-4">
-            <div id="pdf-wrapper" x-show="isPdf">
-                <canvas id="the-canvas" class="shadow-lg"></canvas>
-            </div>
-            <div id="ppt-wrapper" x-show="!isPdf" class="w-100 h-100">
-                <iframe id="ppt-viewer" src="" width="100%" height="100%" frameborder="0"></iframe>
+        <div id="material-viewport" class="flex-grow-1 overflow-auto d-flex justify-content-center align-items-start p-4">
+            <div class="material-viewport-inner">
+                <div id="pdf-wrapper" x-show="isPdf">
+                    <canvas id="the-canvas"></canvas>
+                </div>
+                <div id="ppt-wrapper" x-show="!isPdf" class="w-100" style="min-height: 400px;">
+                    <iframe id="ppt-viewer" src="" width="100%" height="100%" frameborder="0"></iframe>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="sidebar-column">
-        <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light">
+    <div class="sidebar-column" id="sidebarColumn">
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light sidebar-collapse-content">
             <div class="d-flex align-items-center">
                 <div class="avatar bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-robot"></i></div>
                 <div>
@@ -70,45 +92,60 @@
                     <small class="text-success" style="font-size: 0.7rem;"><i class="fas fa-circle me-1"></i>Đang Online</small>
                 </div>
             </div>
-            <div class="position-relative d-flex align-items-center justify-content-center">
-                 <svg viewBox="0 0 36 36" class="circular-chart">
-                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path class="circle" id="prog-circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <span class="position-absolute small fw-bold" id="read-percent" style="font-size: 0.65rem;">0%</span>
+            <div class="d-flex align-items-center gap-2">
+                <div class="position-relative d-flex align-items-center justify-content-center">
+                    <svg viewBox="0 0 36 36" class="circular-chart">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="circle" id="prog-circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <span class="position-absolute small fw-bold" id="read-percent" style="font-size: 0.65rem;">0%</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary border-0 p-1" onclick="toggleSidebar()" title="Thu gọn panel" aria-label="Thu gọn"><i class="fas fa-chevron-right"></i></button>
             </div>
         </div>
+        <div class="sidebar-collapse-mini border-bottom py-2">
+            <div class="position-relative d-flex align-items-center justify-content-center">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" id="prog-circle-mini" /></svg>
+                <span class="position-absolute small fw-bold" id="read-percent-mini" style="font-size: 0.6rem;">0%</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-link p-0" onclick="toggleSidebar()" title="Mở rộng panel"><i class="fas fa-chevron-left"></i></button>
+        </div>
 
-        <div id="chat-history" class="flex-grow-1 p-3 overflow-auto">
+        <div id="chat-history" class="flex-grow-1 p-3 overflow-auto sidebar-collapse-content">
             <div class="msg-bubble msg-ai shadow-sm">
                 <p class="m-0 small">Chào sếp <strong>{{ session.get('shortname') }}</strong>! Dưới đây là 3 câu hỏi để sếp ôn tập nhanh bài học này:</p>
                 <div class="mt-3 pt-2 border-top">
-                    <button onclick="sendQuick('Tóm tắt 3 ý chính quan trọng nhất')" class="btn btn-sm btn-outline-primary rounded-pill mb-2 w-100 text-start" style="font-size: 0.75rem;">1. 📝 Tóm tắt 3 ý quan trọng nhất</button>
-                    <button onclick="sendQuick('Ứng dụng thực tế bài học này tại công ty')" class="btn btn-sm btn-outline-primary rounded-pill mb-2 w-100 text-start" style="font-size: 0.75rem;">2. 💡 Ứng dụng thực tế tại STD&D</button>
-                    <button onclick="sendQuick('Đặt 3 câu hỏi trắc nghiệm ôn tập nhanh')" class="btn btn-sm btn-outline-primary rounded-pill mb-2 w-100 text-start" style="font-size: 0.75rem;">3. ❓ Tự kiểm tra kiến thức nhanh</button>
+                    <button type="button" id="quick-1" class="btn btn-sm btn-outline-primary rounded-pill mb-2 w-100 text-start quick-prompt-btn" style="font-size: 0.75rem;" onclick="sendQuick('Tóm tắt 3 ý chính quan trọng nhất', this)">1. 📝 Tóm tắt 3 ý quan trọng nhất</button>
+                    <button type="button" id="quick-2" class="btn btn-sm btn-outline-primary rounded-pill mb-2 w-100 text-start quick-prompt-btn" style="font-size: 0.75rem;" onclick="sendQuick('Ứng dụng thực tế bài học này tại công ty', this)">2. 💡 Ứng dụng thực tế tại STD&D</button>
+                    <button type="button" id="quick-3" class="btn btn-sm btn-outline-primary rounded-pill mb-2 w-100 text-start quick-prompt-btn" style="font-size: 0.75rem;" onclick="sendQuick('Đặt 3 câu hỏi trắc nghiệm ôn tập nhanh', this)">3. ❓ Tự kiểm tra kiến thức nhanh</button>
                 </div>
             </div>
         </div>
 
-        <div class="p-3 bg-white border-top">
+        <div class="p-3 bg-white border-top sidebar-collapse-content">
             <div class="p-3 mb-2 bg-info bg-opacity-10 border border-info border-opacity-25 rounded-3 mx-3" x-data="{ remainingRequests: 3 }">
                 <div class="d-flex align-items-center mb-2">
                     <i class="fas fa-chalkboard-teacher text-info me-2"></i>
                     <span class="small fw-bold text-dark">Cần giảng viên hướng dẫn?</span>
                 </div>
-                <p class="text-muted" style="font-size: 0.75rem; line-height: 1.3;">
-                    Nếu nội dung này quá khó, sếp có thể đề nghị một buổi dạy trực tiếp (Tối đa 3 lượt/tuần).
-                </p>
+                <p class="text-muted" style="font-size: 0.75rem; line-height: 1.3;">Nếu nội dung này quá khó, sếp có thể đề nghị một buổi dạy trực tiếp (Tối đa 3 lượt/tuần).</p>
                 <button class="btn btn-sm btn-info w-100 text-white fw-bold rounded-pill shadow-sm" 
                         @click="requestTeaching({{ material.MaterialID }})"
                         :disabled="remainingRequests <= 0">
                     <i class="fas fa-paper-plane me-1"></i> Gửi đề nghị giảng dạy
                 </button>
+                <div class="teaching-slots">
+                    <span class="teaching-slot" :class="{ 'used': remainingRequests <= 2 }" title="Lượt 1"></span>
+                    <span class="teaching-slot" :class="{ 'used': remainingRequests <= 1 }" title="Lượt 2"></span>
+                    <span class="teaching-slot" :class="{ 'used': remainingRequests <= 0 }" title="Lượt 3"></span>
+                </div>
                 <div class="text-center mt-1">
                     <small class="text-muted" style="font-size: 0.65rem;">Sếp còn <strong x-text="remainingRequests"></strong> lượt trong tuần</small>
                 </div>
             </div>
-            <button id="btn-take-quiz" class="btn btn-warning w-100 fw-bold rounded-pill shadow-sm mb-3 py-2" onclick="openQuizModal()" disabled>
+            <button id="btn-take-quiz" class="btn btn-warning btn-quiz-lock w-100 fw-bold rounded-pill shadow-sm mb-3 py-2" onclick="openQuizModal()" disabled>
                 <i class="fas fa-lock me-2"></i> Hoàn thành >90% để mở Quiz
             </button>
             <div class="input-group shadow-sm rounded-pill overflow-hidden border">
@@ -256,10 +293,22 @@
     function updateUIProgress(percent) {
         document.getElementById('read-percent').textContent = percent + '%';
         document.getElementById('prog-circle').setAttribute('stroke-dasharray', `${percent}, 100`);
+        var stripPercent = document.getElementById('strip-percent');
+        if (stripPercent) stripPercent.textContent = percent;
+        var miniCircle = document.getElementById('prog-circle-mini');
+        var miniPercent = document.getElementById('read-percent-mini');
+        if (miniCircle) miniCircle.setAttribute('stroke-dasharray', percent + ', 100');
+        if (miniPercent) miniPercent.textContent = percent + '%';
         if (percent >= 90) {
             const btn = document.getElementById('btn-take-quiz');
-            btn.disabled = false; btn.innerHTML = '<i class="fas fa-unlock me-2"></i> Làm bài kiểm tra';
-            btn.classList.replace('btn-warning', 'btn-success');
+            if (btn && btn.disabled) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-unlock me-2"></i> Làm bài kiểm tra';
+                btn.classList.replace('btn-warning', 'btn-success');
+                btn.classList.add('btn-quiz-unlock');
+                var stripQuiz = document.getElementById('strip-quiz-label');
+                if (stripQuiz) { stripQuiz.textContent = 'Quiz: Mở'; stripQuiz.className = 'strip-quiz-open'; }
+            }
         }
     }
 
@@ -336,9 +385,12 @@
         .then(r => r.json())
         .then(res => {
             if (res.passed) {
+                if (typeof confetti === 'function') {
+                    try { confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } }); } catch (e) {}
+                }
                 Swal.fire({
                     title: 'Đạt yêu cầu! 🎉',
-                    html: `Lần thi thứ <b>${res.attempt}</b>.<br>Điểm: <b>${res.score}/${res.total}</b>.<br>Ghi nhận hoàn thành bài học!`,
+                    html: '<div class="mb-2"><span class="badge bg-success fs-6">Hoàn thành bài học</span></div>Lần thi thứ <b>' + res.attempt + '</b>.<br>Điểm: <b>' + res.score + '/' + res.total + '</b>.<br>Ghi nhận hoàn thành bài học!',
                     icon: 'success'
                 }).then(() => location.reload());
             } else {
@@ -348,13 +400,14 @@
                     html: `Lần thi thứ <b>${res.attempt}</b>.<br>Điểm: <b>${res.score}/${res.total}</b>.<br>Bạn cần đúng ít nhất 4/5 câu.<br><br><span class="text-danger">Hệ thống đang đổi 1 câu hỏi mới...</span>`,
                     icon: 'error'
                 }).then(() => {
-                    // Tự động tải lại bộ câu hỏi mới (API sẽ trả về 4 câu cũ + 1 câu mới)
-                    loadQuiz(); 
-                    // Reset trạng thái nút
-                    btn.disabled = false; 
+                    loadQuiz();
+                    btn.disabled = false;
                     btn.innerHTML = 'Nộp bài & Chấm điểm';
-                    // Cuộn lên đầu Modal để Sếp thấy câu hỏi mới
-                    document.getElementById('quizModal').querySelector('.modal-body').scrollTop = 0;
+                    var mb = document.getElementById('quizModal');
+                    if (mb) {
+                        var body = mb.querySelector('.modal-body');
+                        if (body) body.scrollTop = 0;
+                    }
                 });
             }
         })
@@ -371,29 +424,55 @@
         const input = document.getElementById('user-input');
         const text = input.value.trim(); if (!text) return;
         addBubble('user', text); input.value = '';
-        const typingId = addBubble('ai', '<i class="fas fa-spinner fa-spin"></i> Titan Tutor đang suy nghĩ...');
+        const typingId = addBubble('ai', '', true);
         try {
             const res = await fetch('/api/library/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ material_id: materialId, question: text }) });
             const data = await res.json();
             document.getElementById(typingId).remove();
             addBubble('ai', marked.parse(data.text));
-        } catch (e) { document.getElementById(typingId).innerHTML = '❌ Lỗi kết nối AI.'; }
+        } catch (e) {
+            var el = document.getElementById(typingId);
+            if (el) el.outerHTML = '<div class="msg-bubble msg-ai" id="' + typingId + '">❌ Lỗi kết nối AI.</div>';
+        }
     }
 
-    function sendQuick(text) { document.getElementById('user-input').value = text; sendMessage(); }
+    function sendQuick(text, btnEl) {
+        if (btnEl && !btnEl.classList.contains('sent')) {
+            btnEl.classList.add('sent');
+            btnEl.innerHTML = '<i class="fas fa-check me-1"></i> Đã gửi';
+        }
+        document.getElementById('user-input').value = text;
+        sendMessage();
+    }
     
-    function addBubble(role, content) {
+    function addBubble(role, content, skeleton) {
         const history = document.getElementById('chat-history');
         const id = 'msg-' + Date.now();
-        history.insertAdjacentHTML('beforeend', `<div class="msg-bubble msg-${role}" id="${id}">${content}</div>`);
-        history.scrollTop = history.scrollHeight; return id;
+        var html = skeleton
+            ? '<div class="msg-bubble msg-typing-skeleton msg-ai" id="' + id + '"><span style="opacity:0.6;">Titan Tutor đang trả lời...</span></div>'
+            : '<div class="msg-bubble msg-' + role + '" id="' + id + '">' + content + '</div>';
+        history.insertAdjacentHTML('beforeend', html);
+        history.scrollTop = history.scrollHeight;
+        return id;
     }
 
     function saveProgress(page) { fetch('/api/training/progress', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ material_id: materialId, page: page }) }); }
     function changePage(offset) { if (!pdfDoc || pageRendering) return; if (pageNum + offset >= 1 && pageNum + offset <= pdfDoc.numPages) { pageNum += offset; renderPage(pageNum); } }
     function toggleFullScreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); } }
     
+    function toggleSidebar() {
+        var col = document.getElementById('sidebarColumn');
+        if (col) col.classList.toggle('collapsed');
+        var percent = document.getElementById('read-percent').textContent;
+        var circle = document.getElementById('prog-circle');
+        var dash = circle ? circle.getAttribute('stroke-dasharray') : '0, 100';
+        var miniCircle = document.getElementById('prog-circle-mini');
+        var miniPercent = document.getElementById('read-percent-mini');
+        if (miniCircle) miniCircle.setAttribute('stroke-dasharray', dash);
+        if (miniPercent) miniPercent.textContent = percent;
+    }
     document.addEventListener('contextmenu', e => e.preventDefault());
     window.onbeforeprint = () => false;
 </script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 {% endblock %}

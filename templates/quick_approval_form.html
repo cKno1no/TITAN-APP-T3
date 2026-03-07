@@ -3,75 +3,7 @@
 {% block title %}Phê duyệt Nhanh | Titan OS{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* APPROVAL CARDS */
-    .main-card {
-        border: none; background: var(--card-bg); border-radius: var(--card-radius);
-        box-shadow: var(--shadow-sm); margin-bottom: 30px; overflow: visible;
-        border: 1px solid var(--border-color); transition: transform 0.2s;
-    }
-    
-    .card-header-custom {
-        padding: 20px 30px; font-weight: 700; font-size: 1.1rem;
-        display: flex; align-items: center; border-bottom: 1px solid var(--border-color);
-    }
-    .card-header-custom i { font-size: 1.3rem; margin-right: 15px; }
-    
-    .header-quote { background-color: var(--input-bg); color: var(--primary); }
-    .header-order { background-color: rgba(5, 205, 153, 0.1); color: var(--success); }
-
-    .card-body-custom { padding: 30px; }
-
-    /* FORMS & AUTOCOMPLETE */
-    .form-label { font-weight: 600; color: var(--text-dark); font-size: 0.95rem; margin-bottom: 10px; }
-    
-    .search-input {
-        border: 2px solid var(--border-color); background-color: var(--input-bg); border-radius: 16px;
-        padding: 15px 20px; font-size: 1rem; color: var(--text-dark); box-shadow: none;
-        width: 100%; transition: all 0.2s;
-    }
-    .search-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(67, 24, 255, 0.1); }
-
-    .autocomplete-wrapper { position: relative; }
-    
-    .autocomplete-list {
-        position: absolute; top: 100%; left: 0; width: 100%;
-        max-height: 300px; overflow-y: auto;
-        background: var(--card-bg); border: 1px solid var(--primary); border-radius: 12px;
-        box-shadow: var(--shadow-md); z-index: 1000; display: none; margin-top: 5px;
-    }
-    
-    .suggestion-item {
-        padding: 12px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer;
-        font-size: 0.95rem; color: var(--text-dark); transition: background 0.2s;
-    }
-    .suggestion-item:last-child { border-bottom: none; }
-    .suggestion-item:hover { background-color: var(--input-bg); }
-    
-    .suggestion-item.needs-override { background-color: rgba(255, 181, 71, 0.1); color: #B71C1C; font-weight: 600; border-left: 4px solid var(--warning); }
-    .suggestion-item.needs-fix { background-color: rgba(227, 26, 26, 0.1); color: var(--danger); text-decoration: line-through; border-left: 4px solid var(--danger); opacity: 0.7; }
-
-    /* Buttons */
-    .btn-approve {
-        width: 100%; padding: 15px; border-radius: 16px; font-weight: 700; font-size: 1rem;
-        border: none; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
-        margin-top: 20px; color: white;
-    }
-    .btn-quote { background-color: var(--warning); box-shadow: 0 4px 15px rgba(255, 181, 71, 0.3); color: #000; }
-    .btn-quote:hover { background-color: #ffc107; transform: translateY(-2px); }
-    
-    .btn-order { background-color: var(--success); box-shadow: 0 4px 15px rgba(5, 205, 153, 0.3); }
-    .btn-order:hover { background-color: #04b385; transform: translateY(-2px); }
-
-    .hidden-select { display: none; }
-
-    @media (max-width: 768px) {
-        .card-header-custom { padding: 15px; font-size: 1rem; }
-        .card-body-custom { padding: 15px; }
-        .search-input { padding: 12px; font-size: 1rem; }
-        .btn-approve { padding: 15px; font-size: 1rem; margin-top: 15px; }
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/quick_approval_form.css') }}">
 {% endblock %}
 
 {% block page_title %}<i class="fas fa-gavel me-2 text-primary"></i> Bảng Điều Khiển Phê Duyệt Nhanh{% endblock %}
@@ -84,17 +16,17 @@
 {% block content %}
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            
+
             <div class="main-card">
                 <div class="card-header-custom header-quote">
                     <i class="fas fa-certificate"></i> 1. Phê duyệt Chào Giá (Quotes)
                 </div>
                 <div class="card-body-custom">
+                    {% if quotes %}
                     <div class="autocomplete-wrapper">
-                        <label class="form-label">Tìm kiếm Chào Giá (Mã BG, Tên KH):</label>
-                        <input type="text" id="quoteSearchInput" class="search-input" placeholder="Gõ để tìm kiếm..." autocomplete="off">
-                        <div id="quoteSuggestions" class="autocomplete-list"></div>
-                        
+                        <label class="form-label" for="quoteSearchInput">Tìm kiếm Chào Giá (Mã BG, Tên KH):</label>
+                        <input type="text" id="quoteSearchInput" class="search-input" placeholder="Gõ để tìm kiếm..." autocomplete="off" aria-label="Tìm chào giá theo mã hoặc tên khách hàng">
+                        <div id="quoteSuggestions" class="autocomplete-list" role="listbox" aria-label="Kết quả tìm kiếm chào giá"></div>
                         <select id="quoteSelect" class="hidden-select">
                             <option value="">-- Vui lòng chọn phiếu --</option>
                             {% for quote in quotes %}
@@ -102,11 +34,10 @@
                                 {% set is_pass = result.Passed %}
                                 {% set needs_override = result.NeedsOverride | default(False) %}
                                 {% set is_failed_hard = (not is_pass) and (not needs_override) %}
-
                                 <option value="{{ quote.QuotationID }}"
                                         data-quotationno="{{ quote.QuotationNo }}"
                                         data-objectid="{{ quote.ClientID | default('') }}"
-                                        data-nvkd="{{ quote.EmployeeID | default('') }}" 
+                                        data-nvkd="{{ quote.EmployeeID | default('') }}"
                                         data-ratio="{{ result.ApprovalRatio | safe }}"
                                         data-is-pass="{{ is_pass | tojson }}"
                                         data-needs-override="{{ needs_override | tojson }}"
@@ -117,10 +48,16 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
-                    <button id="approveQuoteBtn" class="btn-approve btn-quote">
-                        <i class="fas fa-check-double me-2"></i> Duyệt Chào Giá
+                    <button type="button" id="approveQuoteBtn" class="btn-approve btn-quote" aria-label="Duyệt chào giá đã chọn">
+                        <span id="approveQuoteBtnText"><i class="fas fa-check-double me-2"></i> Duyệt Chào Giá</span>
                     </button>
+                    {% else %}
+                    <div class="approval-empty-state" role="status">
+                        <i class="fas fa-certificate text-primary"></i>
+                        <p class="fw-bold mb-1">Chưa có Chào Giá nào</p>
+                        <small>Không có phiếu chào giá trong 90 ngày qua mà bạn có quyền duyệt.</small>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -129,11 +66,11 @@
                     <i class="fas fa-shipping-fast"></i> 2. Phê duyệt Đơn Hàng Bán (SO)
                 </div>
                 <div class="card-body-custom">
+                    {% if orders %}
                     <div class="autocomplete-wrapper">
-                        <label class="form-label">Tìm kiếm Đơn Hàng (Mã ĐH, Tên KH):</label>
-                        <input type="text" id="orderSearchInput" class="search-input" placeholder="Gõ để tìm kiếm..." autocomplete="off">
-                        <div id="orderSuggestions" class="autocomplete-list"></div>
-
+                        <label class="form-label" for="orderSearchInput">Tìm kiếm Đơn Hàng (Mã ĐH, Tên KH):</label>
+                        <input type="text" id="orderSearchInput" class="search-input" placeholder="Gõ để tìm kiếm..." autocomplete="off" aria-label="Tìm đơn hàng theo mã hoặc tên khách hàng">
+                        <div id="orderSuggestions" class="autocomplete-list" role="listbox" aria-label="Kết quả tìm kiếm đơn hàng"></div>
                         <select id="orderSelect" class="hidden-select">
                             <option value="">-- Vui lòng chọn phiếu --</option>
                             {% for order in orders %}
@@ -141,7 +78,6 @@
                                 {% set is_pass = result.Passed %}
                                 {% set needs_override = result.NeedsOverride | default(False) %}
                                 {% set is_failed_hard = (not is_pass) and (not needs_override) %}
-
                                 <option value="{{ order.SOrderID }}"
                                         data-orderid="{{ order.OrderID }}"
                                         data-sorderid="{{ order.SOrderID }}"
@@ -157,10 +93,16 @@
                             {% endfor %}
                         </select>
                     </div>
-
-                    <button id="approveOrderBtn" class="btn-approve btn-order">
-                        <i class="fas fa-check-circle me-2"></i> Duyệt Đơn Hàng
+                    <button type="button" id="approveOrderBtn" class="btn-approve btn-order" aria-label="Duyệt đơn hàng đã chọn">
+                        <span id="approveOrderBtnText"><i class="fas fa-check-circle me-2"></i> Duyệt Đơn Hàng</span>
                     </button>
+                    {% else %}
+                    <div class="approval-empty-state" role="status">
+                        <i class="fas fa-shipping-fast text-success"></i>
+                        <p class="fw-bold mb-1">Chưa có Đơn Hàng nào</p>
+                        <small>Không có đơn hàng trong 90 ngày qua mà bạn có quyền duyệt.</small>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -170,38 +112,48 @@
 
 {% block scripts %}
 <script>
-    // 1. SETUP AUTOCOMPLETE (Giữ nguyên logic tìm kiếm)
+    function showToast(icon, title) {
+        if (window.Swal) window.Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title || '', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+        else alert(title);
+    }
+    function setQuoteBtnLoading(loading) {
+        var btn = document.getElementById('approveQuoteBtn');
+        var text = document.getElementById('approveQuoteBtnText');
+        if (!btn || !text) return;
+        if (loading) { btn.disabled = true; text.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...'; }
+        else { btn.disabled = false; text.innerHTML = '<i class="fas fa-check-double me-2"></i> Duyệt Chào Giá'; }
+    }
+    function setOrderBtnLoading(loading) {
+        var btn = document.getElementById('approveOrderBtn');
+        var text = document.getElementById('approveOrderBtnText');
+        if (!btn || !text) return;
+        if (loading) { btn.disabled = true; text.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...'; }
+        else { btn.disabled = false; text.innerHTML = '<i class="fas fa-check-circle me-2"></i> Duyệt Đơn Hàng'; }
+    }
+
     function setupAutocomplete(inputId, listId, selectId) {
-        const input = document.getElementById(inputId);
-        const list = document.getElementById(listId);
-        const select = document.getElementById(selectId);
-        const options = Array.from(select.options).slice(1);
+        var input = document.getElementById(inputId);
+        var list = document.getElementById(listId);
+        var select = document.getElementById(selectId);
+        if (!input || !list || !select) return;
+        var options = Array.prototype.slice.call(select.options, 1);
 
         input.addEventListener('input', function() {
-            const term = this.value.toLowerCase();
+            var term = this.value.toLowerCase();
             list.innerHTML = '';
-            
-            if (term.length < 1) { 
-                list.style.display = 'none'; 
-                select.value = ""; 
-                return; 
-            }
-
-            const matches = options.filter(opt => opt.text.toLowerCase().includes(term));
-
+            if (term.length < 1) { list.style.display = 'none'; select.value = ''; return; }
+            var matches = options.filter(function(opt) { return opt.text.toLowerCase().indexOf(term) !== -1; });
             if (matches.length > 0) {
-                matches.forEach(opt => {
-                    const div = document.createElement('div');
-                    // Copy class để giữ màu (đỏ/cam)
-                    div.className = 'suggestion-item ' + opt.className;
+                matches.forEach(function(opt) {
+                    var div = document.createElement('div');
+                    div.className = 'suggestion-item ' + (opt.className || '');
                     div.textContent = opt.text;
+                    div.setAttribute('role', 'option');
                     div.onclick = function() {
                         input.value = opt.text;
                         select.value = opt.value;
                         list.style.display = 'none';
-                        
-                        // Kích hoạt sự kiện change để debug nếu cần
-                        $(select).trigger('change');
+                        if (window.$ && $(select).trigger) $(select).trigger('change');
                     };
                     list.appendChild(div);
                 });
@@ -211,15 +163,9 @@
                 list.style.display = 'block';
             }
         });
-
-        // Tự động hiển thị lại khi focus nếu đã có text
-        input.addEventListener('focus', function() { 
-            if(this.value.trim() !== "") this.dispatchEvent(new Event('input')); 
-        });
-        
-        // Đóng list khi click ra ngoài
-        document.addEventListener('click', function(e) { 
-            if (!input.contains(e.target) && !list.contains(e.target)) list.style.display = 'none'; 
+        input.addEventListener('focus', function() { if (this.value.trim() !== '') this.dispatchEvent(new Event('input')); });
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !list.contains(e.target)) list.style.display = 'none';
         });
     }
 
@@ -228,126 +174,150 @@
         setupAutocomplete('orderSearchInput', 'orderSuggestions', 'orderSelect');
     });
 
-    // 2. LOGIC GỌI API DUYỆT (PHẦN QUAN TRỌNG CẦN THÊM VÀO)
     $(document).ready(function() {
-        
-        // --- A. XỬ LÝ DUYỆT CHÀO GIÁ ---
         $('#approveQuoteBtn').on('click', function() {
-            const selected = $('#quoteSelect option:selected');
-            const quoteId = selected.val();
-
+            var selected = $('#quoteSelect option:selected');
+            var quoteId = selected.val();
             if (!quoteId) {
-                alert('Vui lòng tìm kiếm và chọn một Chào Giá để duyệt.');
-                $('#quoteSearchInput').focus();
+                if (window.Swal) window.Swal.fire({ icon: 'warning', title: 'Chưa chọn phiếu', text: 'Vui lòng tìm kiếm và chọn một Chào Giá để duyệt.' });
+                else alert('Vui lòng tìm kiếm và chọn một Chào Giá để duyệt.');
+                document.getElementById('quoteSearchInput').focus();
                 return;
             }
+            var quoteNo = selected.data('quotationno');
+            var isPass = selected.data('is-pass');
+            var needsOverride = selected.data('needs-override');
+            var reason = selected.data('reason') || '';
 
-            // Lấy data attributes
-            const quoteNo = selected.data('quotationno');
-            const isPass = selected.data('is-pass'); // True/False
-            const needsOverride = selected.data('needs-override'); // True/False
-            const reason = selected.data('reason');
-
-            // Kiểm tra Logic Chặn cứng (Failed Hard)
-            // Nếu Không Pass VÀ Không cho phép Ghi đè -> Chặn
             if (isPass === false && needsOverride === false) {
-                alert(`⛔ KHÔNG THỂ DUYỆT PHIẾU NÀY!\nLý do: ${reason}\n(Đây là lỗi bắt buộc, cần NV kinh doanh sửa lại)`);
+                if (window.Swal) {
+                    window.Swal.fire({
+                        icon: 'error',
+                        title: 'Không thể duyệt phiếu này',
+                        html: '<p class="text-start">' + reason + '</p><p class="text-muted small mt-2">Đây là lỗi bắt buộc, cần NV kinh doanh sửa lại.</p>',
+                        confirmButtonText: 'Đã hiểu',
+                        customClass: { confirmButton: 'btn btn-primary rounded-pill px-4' }
+                    });
+                } else alert('⛔ KHÔNG THỂ DUYỆT PHIẾU NÀY!\nLý do: ' + reason);
                 return;
             }
 
-            // Nếu Pass=False nhưng Override=True -> Cảnh báo vàng
-            let confirmMsg = `Xác nhận DUYỆT NHANH Chào giá: ${quoteNo}?`;
+            var confirmMsg = 'Xác nhận DUYỆT NHANH Chào giá: <strong>' + quoteNo + '</strong>?';
             if (needsOverride === true) {
-                confirmMsg += `\n\n⚠️ CẢNH BÁO: Phiếu này đang vi phạm tỷ số duyệt (${reason}).\nBạn có chắc chắn muốn GHI ĐÈ (Override) và duyệt ngay không?`;
+                confirmMsg += '<br><br><span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i> CẢNH BÁO: Phiếu này đang vi phạm tỷ số duyệt (' + reason + '). Bạn có chắc muốn GHI ĐÈ và duyệt ngay không?</span>';
             }
 
-            if (!confirm(confirmMsg)) return;
+            var doApprove = function() {
+                setQuoteBtnLoading(true);
+                $.ajax({
+                    url: '/api/approve_quote',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        quotation_no: quoteNo,
+                        quotation_id: quoteId,
+                        object_id: selected.data('objectid'),
+                        employee_id: selected.data('nvkd'),
+                        approval_ratio: selected.data('ratio')
+                    }),
+                    success: function(res) {
+                        showToast('success', res.message || 'Đã duyệt.');
+                        setTimeout(function() { location.reload(); }, 1500);
+                    },
+                    error: function(err) {
+                        var msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Lỗi kết nối server';
+                        setQuoteBtnLoading(false);
+                        showToast('error', msg);
+                    }
+                });
+            };
 
-            // Gửi API
-            const btn = $(this);
-            const originalText = btn.html();
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
-
-            $.ajax({
-                url: '/api/approve_quote',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    quotation_no: quoteNo,
-                    quotation_id: quoteId,
-                    object_id: selected.data('objectid'),
-                    employee_id: selected.data('nvkd'),
-                    approval_ratio: selected.data('ratio')
-                }),
-                success: function(res) {
-                    alert('✅ ' + res.message);
-                    location.reload(); // Tải lại trang để cập nhật danh sách
-                },
-                error: function(err) {
-                    const msg = err.responseJSON ? err.responseJSON.message : 'Lỗi kết nối server';
-                    alert('❌ Lỗi: ' + msg);
-                    btn.prop('disabled', false).html(originalText);
-                }
-            });
+            if (window.Swal) {
+                window.Swal.fire({
+                    title: 'Xác nhận duyệt Chào giá',
+                    html: confirmMsg,
+                    icon: needsOverride ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Duyệt',
+                    cancelButtonText: 'Hủy',
+                    customClass: { confirmButton: 'btn btn-primary rounded-pill px-4', cancelButton: 'btn btn-light rounded-pill px-4' }
+                }).then(function(result) { if (result.isConfirmed) doApprove(); });
+            } else {
+                if (confirm(confirmMsg.replace(/<[^>]*>/g, ''))) doApprove();
+            }
         });
 
-        // --- B. XỬ LÝ DUYỆT ĐƠN HÀNG BÁN (SO) ---
         $('#approveOrderBtn').on('click', function() {
-            const selected = $('#orderSelect option:selected');
-            const sorderId = selected.val(); // Value của option là SOrderID
-
+            var selected = $('#orderSelect option:selected');
+            var sorderId = selected.val();
             if (!sorderId) {
-                alert('Vui lòng tìm kiếm và chọn một Đơn Hàng để duyệt.');
-                $('#orderSearchInput').focus();
+                if (window.Swal) window.Swal.fire({ icon: 'warning', title: 'Chưa chọn phiếu', text: 'Vui lòng tìm kiếm và chọn một Đơn Hàng để duyệt.' });
+                else alert('Vui lòng tìm kiếm và chọn một Đơn Hàng để duyệt.');
+                document.getElementById('orderSearchInput').focus();
                 return;
             }
+            var orderNo = selected.data('orderid');
+            var isPass = selected.data('is-pass');
+            var needsOverride = selected.data('needs-override');
+            var reason = selected.data('reason') || '';
 
-            const orderNo = selected.data('orderid');
-            const isPass = selected.data('is-pass');
-            const needsOverride = selected.data('needs-override');
-            const reason = selected.data('reason');
-
-            // Kiểm tra Logic Chặn cứng
             if (isPass === false && needsOverride === false) {
-                alert(`⛔ KHÔNG THỂ DUYỆT ĐƠN HÀNG NÀY!\nLý do: ${reason}`);
+                if (window.Swal) {
+                    window.Swal.fire({
+                        icon: 'error',
+                        title: 'Không thể duyệt đơn hàng này',
+                        html: '<p class="text-start">' + reason + '</p>',
+                        confirmButtonText: 'Đã hiểu',
+                        customClass: { confirmButton: 'btn btn-primary rounded-pill px-4' }
+                    });
+                } else alert('⛔ KHÔNG THỂ DUYỆT ĐƠN HÀNG NÀY!\nLý do: ' + reason);
                 return;
             }
 
-            let confirmMsg = `Xác nhận DUYỆT NHANH Đơn hàng: ${orderNo}?`;
+            var confirmMsg = 'Xác nhận DUYỆT NHANH Đơn hàng: <strong>' + orderNo + '</strong>?';
             if (needsOverride === true) {
-                confirmMsg += `\n\n⚠️ CẢNH BÁO: Đơn hàng này có vấn đề về tỷ số (${reason}).\nBạn có chắc chắn muốn GHI ĐÈ và duyệt ngay không?`;
+                confirmMsg += '<br><br><span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i> CẢNH BÁO: Đơn hàng này có vấn đề về tỷ số (' + reason + '). Bạn có chắc muốn GHI ĐÈ và duyệt ngay không?</span>';
             }
 
-            if (!confirm(confirmMsg)) return;
+            var doApprove = function() {
+                setOrderBtnLoading(true);
+                $.ajax({
+                    url: '/api/approve_order',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        order_id: orderNo,
+                        sorder_id: sorderId,
+                        client_id: selected.data('clientid'),
+                        salesman_id: selected.data('salesmanid'),
+                        approval_ratio: selected.data('ratio')
+                    }),
+                    success: function(res) {
+                        showToast('success', res.message || 'Đã duyệt.');
+                        setTimeout(function() { location.reload(); }, 1500);
+                    },
+                    error: function(err) {
+                        var msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Lỗi kết nối server';
+                        setOrderBtnLoading(false);
+                        showToast('error', msg);
+                    }
+                });
+            };
 
-            // Gửi API
-            const btn = $(this);
-            const originalText = btn.html();
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
-
-            $.ajax({
-                url: '/api/approve_order',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    order_id: orderNo,
-                    sorder_id: sorderId,
-                    client_id: selected.data('clientid'),
-                    salesman_id: selected.data('salesmanid'),
-                    approval_ratio: selected.data('ratio')
-                }),
-                success: function(res) {
-                    alert('✅ ' + res.message);
-                    location.reload();
-                },
-                error: function(err) {
-                    const msg = err.responseJSON ? err.responseJSON.message : 'Lỗi kết nối server';
-                    alert('❌ Lỗi: ' + msg);
-                    btn.prop('disabled', false).html(originalText);
-                }
-            });
+            if (window.Swal) {
+                window.Swal.fire({
+                    title: 'Xác nhận duyệt Đơn hàng',
+                    html: confirmMsg,
+                    icon: needsOverride ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Duyệt',
+                    cancelButtonText: 'Hủy',
+                    customClass: { confirmButton: 'btn btn-primary rounded-pill px-4', cancelButton: 'btn btn-light rounded-pill px-4' }
+                }).then(function(result) { if (result.isConfirmed) doApprove(); });
+            } else {
+                if (confirm(confirmMsg.replace(/<[^>]*>/g, ''))) doApprove();
+            }
         });
-
     });
 </script>
 {% endblock %}

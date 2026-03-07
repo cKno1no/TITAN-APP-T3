@@ -54,6 +54,24 @@
     .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
     .htmx-request .htmx-indicator { opacity: 1; }
     .htmx-request.htmx-indicator { opacity: 1; }
+
+    /* FUNNEL STRIP */
+    .funnel-strip {
+        background: var(--input-bg);
+        border-radius: 14px;
+        border: 1px solid var(--border-color);
+        padding: 10px 16px;
+        margin-bottom: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.9rem;
+        color: var(--text-dark);
+    }
+    .funnel-item { display: inline-flex; align-items: center; gap: 6px; }
+    .funnel-item span.value { font-weight: 700; }
+    .funnel-total { border-right: 1px solid var(--border-color); padding-right: 12px; margin-right: 4px; }
 </style>
 {% endblock %}
 
@@ -105,7 +123,28 @@
             </form>
         </div>
     </div>
-    
+
+    {% set total_q = quotes|length %}
+    {% set auto_pass = quotes|selectattr('ApprovalResult.Passed')|list|length %}
+    {% set pending_override = quotes|selectattr('NeedsCostOverride', 'equalto', 1)|selectattr('HasCostOverrideData', 'equalto', 0)|list|length %}
+    {% set hard_fail = total_q - auto_pass - pending_override %}
+
+    <div class="funnel-strip">
+        <div class="funnel-item funnel-total">
+            <span class="text-muted small text-uppercase">Tổng</span>
+            <span class="value">{{ total_q }}</span> BG
+        </div>
+        <div class="funnel-item text-success">
+            <span class="value">{{ auto_pass }}</span> pass tự động
+        </div>
+        <div class="funnel-item text-warning">
+            <span class="value">{{ pending_override }}</span> pending override
+        </div>
+        <div class="funnel-item text-danger">
+            <span class="value">{{ hard_fail if hard_fail > 0 else 0 }}</span> fail cứng
+        </div>
+    </div>
+
     <div class="main-card" x-data="quoteApproval()">
         <div class="card-header-custom d-flex justify-content-between align-items-center">
             <span><i class="fas fa-list-ul me-2 text-primary"></i> DANH SÁCH CẦN DUYỆT</span>

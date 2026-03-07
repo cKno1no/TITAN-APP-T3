@@ -12,20 +12,19 @@ from services.tools_schema import get_tools_definitions
 from services.rag_memory_service import RagMemoryService
 from services.chatbot_ui_helper import ChatbotUIHelper
 from services.training_service import TrainingService
-from services.gamification_service import GamificationService
 
 logger = logging.getLogger(__name__)
 
 class ChatbotService:
-    def __init__(self, sales_lookup_service, customer_service, delivery_service, task_service, app_config, db_manager):
+    def __init__(self, sales_lookup_service, customer_service, delivery_service, task_service, app_config, db_manager, gamification_service=None):
         self.lookup_service = sales_lookup_service
         self.customer_service = customer_service
         self.delivery_service = delivery_service
         self.task_service = task_service
         self.db = db_manager
         self.app_config = app_config
-        
-        self.gamification = GamificationService(db_manager)
+        # Dùng chung một instance GamificationService từ factory để XP/activity thống nhất (tránh hai instance)
+        self.gamification = gamification_service
         self.training_service = TrainingService(db_manager, self.gamification)
         self.rag_service = RagMemoryService(db_manager)
         
@@ -221,8 +220,9 @@ class ChatbotService:
                 if 0 <= idx < len(context_list):
                     selected = context_list[idx]
                     session.pop('customer_search_results', None)
-                    return [selected] 
-            except: pass
+                    return [selected]
+            except Exception:
+                pass
 
         if not customer_name: return None
         customers = self.customer_service.get_customer_by_name(customer_name)

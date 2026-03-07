@@ -20,7 +20,7 @@ class QuotationApprovalService:
             if val > 1000000 and val % 100000 == 0:
                 return val / 100000
             return val
-        except:
+        except Exception:
             return 0.0
 
     def is_user_admin(self, user_code):

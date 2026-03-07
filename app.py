@@ -97,7 +97,8 @@ def format_date(value):
                 date_obj = datetime.strptime(value[:10], '%Y-%m-%d')
                 return date_obj.strftime('%d/%m/%Y')
             elif '/' in value: return value 
-        except: pass
+        except Exception:
+            pass
     return str(value)
 
 @app.template_filter('format_number')
@@ -117,6 +118,14 @@ def format_number(value):
 @app.route('/login', methods=['GET', 'POST'])
 @record_activity('LOGIN') # <--- CHỈ CẦN THÊM DÒNG NÀY LÀ XONG
 def login():
+    # Trang login không extend base.html → không có meta CSRF từ base; form đã có hidden csrf_token.
+    # Trả về response login kèm no-cache để tránh cache HTML cũ → token hết hạn → lỗi CSRF thi thoảng.
+    from flask import make_response
+    def _login_page(message=None):
+        r = make_response(render_template('login.html', message=message))
+        r.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        r.headers['Pragma'] = 'no-cache'
+        return r
     # Nếu đã login, điều hướng luôn
     if session.get('logged_in'):
         user_role = session.get('user_role', '').strip().upper()
@@ -152,12 +161,12 @@ def login():
             if user_division == 'STDP' and current_port == '5000':
                 message = "⚠️ SAI CỔNG TRUY CẬP: Tài khoản Hà Nội (STDP) vui lòng đăng nhập ở cổng 5050."
                 flash(message, 'danger')
-                return render_template('login.html', message=message)
+                return _login_page(message)
 
             if user_division != 'STDP' and current_port == '5050':
                 message = "⚠️ SAI CỔNG TRUY CẬP: Tài khoản Sài Gòn vui lòng đăng nhập ở cổng 5000."
                 flash(message, 'danger')
-                return render_template('login.html', message=message)
+                return _login_page(message)
             
             # --- THIẾT LẬP SESSION ---
             session.clear() 
@@ -212,7 +221,7 @@ def login():
             message = "Tên đăng nhập hoặc mật khẩu không đúng."
             flash(message, 'danger')
             
-    return render_template('login.html', message=message)
+    return _login_page(message)
 
 @app.route('/logout')
 def logout():

@@ -133,18 +133,26 @@ class TrainingService:
     </a>
 </div>
 """
-            for user_code in group:
-                # Đánh dấu phiên cũ hết hạn
-                self.db.execute_non_query("UPDATE TRAINING_DAILY_SESSION SET Status='EXPIRED' WHERE UserCode=? AND Status='PENDING'", (user_code,))
-                # Tạo phiên mới (Hạn 10 phút)
-                expired_at = datetime.now() + timedelta(minutes=45)
-                self.db.execute_non_query("""
+            expired_at = datetime.now() + timedelta(minutes=45)
+            conn = None
+            try:
+                conn = self.db.get_transaction_connection()
+                cursor = conn.cursor()
+                placeholders = ','.join(['?'] * len(group))
+                cursor.execute(f"UPDATE TRAINING_DAILY_SESSION SET Status='EXPIRED' WHERE UserCode IN ({placeholders}) AND Status='PENDING'", group)
+                cursor.executemany("""
                     INSERT INTO TRAINING_DAILY_SESSION 
                     (UserCode, QuestionID, Status, ExpiredAt, BatchTime) 
                     VALUES (?, ?, 'PENDING', ?, GETDATE())
-                """, (user_code, q_id, expired_at))
-                # Gửi thông báo
-                self.db.execute_non_query("INSERT INTO TitanOS_Game_Mailbox (UserCode, Title, Content, CreatedTime, IsClaimed) VALUES (?, ?, ?, GETDATE(), 0)", (user_code, mail_title, mail_content))
+                """, [(user_code, q_id, expired_at) for user_code in group])
+                cursor.executemany("INSERT INTO TitanOS_Game_Mailbox (UserCode, Title, Content, CreatedTime, IsClaimed) VALUES (?, ?, ?, GETDATE(), 0)", [(user_code, mail_title, mail_content) for user_code in group])
+                conn.commit()
+            except Exception:
+                if conn: conn.rollback()
+                raise
+            finally:
+                if conn: conn.close()
+            for user_code in group:
                 messages_to_send.append({"user_code": user_code})
                 
         return messages_to_send
@@ -316,6 +324,39 @@ class TrainingService:
             current_app.logger.error(f"Lỗi submit_answer: {e}")
             return {'success': False, 'msg': 'Lỗi hệ thống khi nộp bài.'}
 
+    def get_daily_challenge_history(self, user_code, limit=20):
+        """Lấy lịch sử tham gia Thử thách mỗi ngày (cho block Nhật ký hoạt động)."""
+        try:
+            sql = """
+                SELECT TOP (?)
+                    S.SessionID, S.BatchTime, S.Status, S.AIScore, S.EarnedXP,
+                    LEFT(Q.Content, 80) AS QuestionPreview
+                FROM TRAINING_DAILY_SESSION S
+                LEFT JOIN TRAINING_QUESTION_BANK Q ON S.QuestionID = Q.ID
+                WHERE S.UserCode = ?
+                ORDER BY S.BatchTime DESC
+            """
+            rows = self.db.get_data(sql, (limit, user_code)) or []
+            history = []
+            for r in rows:
+                batch_time = r.get('BatchTime')
+                if hasattr(batch_time, 'strftime'):
+                    batch_str = batch_time.strftime('%d/%m/%Y %H:%M')
+                else:
+                    batch_str = str(batch_time) if batch_time else '--'
+                history.append({
+                    'session_id': r.get('SessionID'),
+                    'batch_time': batch_str,
+                    'status': r.get('Status') or '--',
+                    'score': r.get('AIScore'),
+                    'earned_xp': r.get('EarnedXP', 0),
+                    'question_preview': (r.get('QuestionPreview') or '')[:80],
+                })
+            return history
+        except Exception as e:
+            current_app.logger.warning(f"get_daily_challenge_history: {e}")
+            return []
+
     # 5. HÀM PHỤ TRỢ AI CHẤM
     def _ai_grade_answer(self, question, standard, user_ans):
         try:
@@ -329,7 +370,7 @@ class TrainingService:
             """
             res = model.generate_content(prompt)
             return json.loads(res.text.replace('```json', '').replace('```', '').strip())
-        except:
+        except Exception:
             return {"score": 5, "feedback": "Hệ thống bận, chấm điểm khuyến khích."}
 
     # 6. LẤY CHALLENGE CHO CHATBOT (Legacy)
@@ -542,7 +583,7 @@ class TrainingService:
             try:
                 stats = self.db.get_data("SELECT Level FROM TitanOS_UserStats WHERE UserCode = ?", (user_code,))
                 level = int(stats[0]['Level']) if stats else 1
-            except:
+            except Exception:
                 level = 1
             max_limit = base_limit + (level * bonus_per_level)
 
@@ -996,8 +1037,6 @@ class TrainingService:
                     f"📅 GẦN NHẤT: {last_req_str}\n\n"
                     f"Hệ thống tự động tạo task vì đủ nhóm 4 người đề nghị."
                 )
-                
-                from flask import current_app
                 current_app.task_service.create_new_task(
                     user_code='SYSTEM', 
                     title=task_title,
@@ -1010,7 +1049,6 @@ class TrainingService:
             return True, "Gửi đề nghị thành công!"
 
         except Exception as e:
-            from flask import current_app
             current_app.logger.error(f"Lỗi request_teaching: {str(e)}")
             # Trả về lỗi chi tiết để sếp biết vướng ở đâu
             return False, f"Lỗi phía máy chủ: {str(e)}"

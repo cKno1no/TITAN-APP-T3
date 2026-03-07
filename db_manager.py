@@ -1,4 +1,4 @@
-﻿# db_manager.py
+# db_manager.py
 
 from flask import current_app
 import pandas as pd
@@ -103,7 +103,7 @@ class DBManager:
             try:
                 error_msg = str(e).encode('utf-8', 'replace').decode('utf-8')
                 current_app.logger.error(f"Lỗi get_data (Hybrid): {error_msg}")
-            except:
+            except Exception:
                 current_app.logger.error("Lỗi get_data (Hybrid): (Lỗi Unicode khi in log)")
                 
             return []
@@ -154,18 +154,19 @@ class DBManager:
         return cursor
 
     def execute_sp_multi(self, sp_name, params=None):
-        """Thực thi Stored Procedure trả về NHIỀU bảng (Multi-ResultSet)."""
+        """Thực thi Stored Procedure trả về NHIỀU bảng (Multi-ResultSet).
+        Hỗ trợ params=None (SP không tham số) và params=() (tuple rỗng) để tránh lỗi khi gọi SP không đối số.
+        """
         conn = None
         results = []
         try:
             conn = self.engine.raw_connection() # Lấy kết nối từ Pool
             cursor = conn.cursor()
-            
-            # Xây dựng câu lệnh EXEC
-            param_placeholders = ', '.join(['?' for _ in params]) if params else ''
-            sql = f"EXEC {sp_name} {param_placeholders}"
-            
-            if params:
+            # Phân biệt rõ: chỉ thêm placeholder khi có ít nhất một tham số (tránh params=() bị hiểu nhầm)
+            has_params = params is not None and len(params) > 0
+            param_placeholders = ', '.join(['?' for _ in params]) if has_params else ''
+            sql = f"EXEC {sp_name} {param_placeholders}".rstrip()
+            if has_params:
                 cursor.execute(sql, params)
             else:
                 cursor.execute(sql)

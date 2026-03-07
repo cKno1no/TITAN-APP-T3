@@ -36,6 +36,7 @@ from services.gamification_service import GamificationService
 from services.training_service import TrainingService  # <--- [THÊM MỚI]
 from services.kpi_service import KPIService
 from services.crm_service import CRMService
+from services.po_approval_service import POApprovalService
 
 # 2. Import Blueprints
 from blueprints.crm_bp import crm_bp
@@ -56,6 +57,7 @@ from blueprints.customer_analysis_bp import customer_analysis_bp
 from blueprints.training_bp import training_bp         # <--- [THÊM MỚI]
 # Khởi tạo đối tượng Cache (chưa gắn app)
 from blueprints.kpi_evaluation_bp import kpi_evaluation_bp
+from blueprints.po_approval_bp import po_approval_bp
 
 cache = Cache()
 csrf = CSRFProtect()
@@ -160,7 +162,8 @@ def create_app():
     app.customer_analysis_service = CustomerAnalysisService(app.db_manager, app.redis_client)
     app.kpi_service = KPIService(db_manager)
     app.crm_service = CRMService(db_manager)
-    
+    app.po_approval_service = POApprovalService(db_manager)
+
     # [FIX] Khởi tạo và gắn PortalService
     app.portal_service = PortalService(db_manager)
     app.user_service = UserService(db_manager)
@@ -171,9 +174,10 @@ def create_app():
         app.lookup_service,
         app.customer_service,
         app.delivery_service,
-        app.task_service,    # <--- THÊM DÒNG NÀY
+        app.task_service,
         app.config,
-        db_manager           # <--- THÊM DÒNG NÀY (để query trực tiếp)
+        db_manager,
+        app.gamification_service  # Một instance duy nhất; tránh trùng với ChatbotService tự tạo
     )
 
     # 4. ĐĂNG KÝ BLUEPRINTS
@@ -195,6 +199,7 @@ def create_app():
     app.register_blueprint(training_bp) # <--- [THÊM MỚI] Đăng ký đường dẫn /training
     # 5. Inject User Context
     app.register_blueprint(kpi_evaluation_bp)
+    app.register_blueprint(po_approval_bp)
    
     @app.context_processor
     # 5. Inject User Context (ĐÃ FIX LỖI)

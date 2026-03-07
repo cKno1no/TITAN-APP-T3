@@ -140,7 +140,7 @@ class CustomerAnalysisService:
             debt_data = self.db.get_data(q_debt, (object_id,))
             curr_debt = safe_float(debt_data[0]['TotalDebt']) if debt_data else 0
             over_debt = safe_float(debt_data[0]['TotalOverdueDebt']) if debt_data else 0
-        except:
+        except Exception:
             curr_debt = 0
             over_debt = 0
 

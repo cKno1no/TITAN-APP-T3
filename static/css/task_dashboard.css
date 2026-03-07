@@ -1,0 +1,266 @@
+/**
+ * Task Dashboard - Trang Quản lý Đầu việc
+ * KPI tiles, Kanban, bảng lịch sử, modal, timeline.
+ */
+
+/* --- KPI TILES --- */
+.kpi-tile {
+    text-align: center;
+    padding: 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.kpi-tile:hover {
+    opacity: 0.9;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+.kpi-value { font-size: 2rem; display: block; }
+.kpi-label { font-size: 0.85rem; opacity: 0.9; text-transform: uppercase; }
+
+.bg-total { background-color: var(--secondary); }
+.bg-completed { background-color: var(--success); }
+.bg-pending { background-color: var(--warning); color: #000; }
+.bg-help { background-color: var(--danger); }
+.kpi-active { border: 3px solid var(--primary); box-shadow: 0 0 15px rgba(67, 24, 255, 0.3); }
+
+/* --- MAIN CARD & BODY (tránh nội dung dính viền) --- */
+.task_dashboard .main-card .card-header-custom,
+.main-card .card-header-custom {
+    padding: 14px 20px;
+}
+.task_dashboard .main-card .card-body-custom,
+.main-card .card-body-custom {
+    padding: 18px 20px;
+}
+
+/* --- KANBAN BOARD --- */
+.kanban-container {
+    display: flex;
+    gap: 15px;
+    min-height: 400px;
+    padding-bottom: 10px;
+}
+.kanban-column {
+    flex-basis: 25%;
+    min-width: 250px;
+    background-color: var(--input-bg);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+    border: 1px solid var(--border-color);
+}
+.kanban-column-header {
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--border-color);
+    text-align: center;
+    color: var(--secondary);
+    text-transform: uppercase;
+}
+.task-list { overflow-y: auto; flex-grow: 1; padding-right: 8px; }
+
+/* Empty state Kanban */
+.kanban-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    padding: 1rem;
+    text-align: center;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+.kanban-empty-state p { margin: 0; }
+
+/* Inline validation errors */
+.form-error-inline {
+    font-size: 0.8rem;
+    color: var(--danger);
+    margin-top: 0.25rem;
+    min-height: 1.25rem;
+}
+
+/* Submit button loading */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.85;
+}
+.btn-loading .btn-spinner { display: inline-block; margin-right: 0.35rem; }
+
+/* History table empty state */
+.task-history-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* Task Card */
+.task-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+    border-left: 5px solid var(--primary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    position: relative;
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    border-left-width: 5px;
+    transition: transform 0.2s;
+}
+.task-card:hover {
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    border-color: var(--primary);
+    transform: scale(1.02);
+    z-index: 5;
+}
+.task-card.priority-high { border-left-color: var(--danger); background-color: rgba(227, 26, 26, 0.05); }
+.task-card.priority-alert { border-left-color: var(--warning); }
+
+.new-update-marker {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--danger);
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(227, 26, 26, 0.5);
+}
+
+/* --- HISTORY TABLE --- */
+.table-task th {
+    background-color: var(--input-bg) !important;
+    color: var(--secondary) !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+    padding: 12px 14px !important;
+}
+.table-task td {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    padding: 12px 14px !important;
+}
+.table-task tbody tr:hover td { background-color: var(--input-bg); }
+
+.truncate-content {
+    max-width: 350px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Help Call UI */
+.help-call-display {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 181, 71, 0.1);
+    border: 2px dashed var(--warning);
+    color: var(--danger);
+    border-radius: 12px;
+    height: 48px;
+    font-weight: 700;
+    width: 100%;
+    animation: flash-border 2s infinite;
+}
+@keyframes flash-border {
+    0%, 100% { border-color: var(--warning); }
+    50% { border-color: var(--danger); }
+}
+
+/* Modal overrides (Task Dashboard) - tăng padding tránh chữ/object dính viền */
+.modal-content { background-color: var(--card-bg); border-radius: 16px; border: none; }
+.modal-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 1.25rem;
+}
+.modal-body {
+    padding: 1.25rem 1.5rem;
+}
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem 1.25rem;
+}
+.modal-body .form-label { margin-bottom: 0.35rem; }
+.modal-body .form-control,
+.modal-body .form-select {
+    padding: 0.5rem 0.75rem;
+    min-height: 2.5rem;
+}
+.form-control, .form-select { background-color: var(--input-bg); color: var(--text-dark); border: 1px solid var(--border-color); }
+.form-control:focus { background-color: var(--card-bg); }
+
+/* Search Dropdown - Khách hàng (Tạo task) */
+.create-kh-dropdown,
+#create_kh_search_results {
+    position: absolute !important;
+    left: 0;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    width: 100% !important;
+    z-index: 1060;
+    background-color: var(--card-bg);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+#create_kh_search_results option {
+    padding: 8px 12px;
+    margin: 0;
+    cursor: pointer;
+}
+#create_kh_search_results option:hover {
+    background-color: var(--input-bg);
+}
+
+/* Timeline */
+.timeline-item { position: relative; padding-bottom: 1.5rem; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-marker {
+    position: absolute;
+    left: -1.25rem;
+    top: 0.25rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid white;
+}
+
+@media (max-width: 992px) {
+    .col-6 { width: 50%; padding: 5px; }
+    .kpi-tile { padding: 15px; min-height: 100px; margin-bottom: 0; }
+    .kpi-value { font-size: 1.5rem; }
+    .kpi-label { font-size: 0.7rem; }
+    .kanban-container { flex-direction: column; height: auto; padding: 0; }
+    .kanban-column { width: 100%; margin-bottom: 20px; max-height: 400px; }
+    .table-responsive { overflow-x: auto; }
+    .truncate-content { white-space: normal; min-width: 200px; }
+}

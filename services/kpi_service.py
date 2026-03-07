@@ -546,6 +546,17 @@ class KPIService:
                 'sum_fields': [],
                 'label_field': 'TenTask'
             },
+            'KPI_SYS_03': {
+                'sp': 'sp_KPI_GetDetail_System',
+                'columns': [
+                    {"field": "Nguon", "label": "Nguồn XP"},
+                    {"field": "MoTa", "label": "Mô tả"},
+                    {"field": "SoLuong", "label": "Số lượng", "type": "number"},
+                    {"field": "XP", "label": "XP Đóng góp", "type": "number"}
+                ],
+                'sum_fields': ['XP', 'SoLuong'],
+                'label_field': 'Nguon'
+            },
             # --- CHI TIẾT KẾ TOÁN ---
             'KPI_KT_01': {
                 'sp': 'sp_KPI_GetDetail_Acc',

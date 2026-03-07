@@ -272,13 +272,14 @@ class BudgetService:
         
         requests = self.db.get_data(query, tuple(query_params))
         
-        # Tính toán trạng thái YTD cho từng phiếu để hiển thị cảnh báo khi duyệt
+        # Tính toán trạng thái YTD cho từng phiếu (cache theo BudgetCode+Amount để tránh N+1)
+        cache = {}
         for req in requests:
             req['Amount'] = safe_float(req.get('Amount'))
-            
-            # Gọi hàm kiểm tra Lũy kế
-            check = self.check_budget_for_approval(req['BudgetCode'], req['Amount'])
-            
+            key = (req['BudgetCode'], req['Amount'])
+            if key not in cache:
+                cache[key] = self.check_budget_for_approval(req['BudgetCode'], req['Amount'])
+            check = cache[key]
             req['YTD_Plan'] = check['YTD_Plan']
             req['YTD_Actual'] = check['YTD_Actual']
             req['IsWarning'] = check['IsWarning']
@@ -519,6 +520,6 @@ class BudgetService:
                 if row['VoucherDate']:
                     try:
                         row['VoucherDate'] = row['VoucherDate'].strftime('%d/%m/%Y')
-                    except:
+                    except Exception:
                         pass
         return details or []

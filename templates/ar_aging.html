@@ -61,10 +61,23 @@
     .customer-link { color: var(--primary); text-decoration: none; font-weight: 600; }
     .customer-link:hover { text-decoration: underline; color: var(--primary-dark); }
 
-    /* Loading Indicator Overlay */
     .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
     .htmx-request .htmx-indicator { opacity: 1; }
-    .htmx-request.htmx-indicator { opacity: 1; }
+
+    .ar-hero-strip {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 12px 20px; margin-bottom: 20px;
+        background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; font-size: 0.9rem;
+    }
+    .ar-hero-strip .hero-label { color: var(--secondary); }
+    .ar-hero-strip .hero-val { font-weight: 800; color: var(--text-dark); }
+    .ar-hero-strip .hero-dot { opacity: 0.5; margin: 0 4px; }
+
+    .ar-command-bar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; padding: 16px 20px; }
+    .ar-command-bar .form-label { margin-bottom: 0; font-size: 0.8rem; font-weight: 600; color: var(--secondary); }
+    .ar-command-bar .input-item { min-width: 220px; }
+
+    .empty-state-ar { padding: 3rem 1rem; text-align: center; color: var(--secondary); }
+    .empty-state-ar i { font-size: 2.5rem; opacity: 0.35; margin-bottom: 0.75rem; }
 </style>
 {% endblock %}
 
@@ -76,6 +89,17 @@
 {% endblock %}
 
 {% block content %}
+    <div class="ar-hero-strip">
+        <span class="hero-label">Tổng công nợ</span>
+        <span class="hero-val">{{ kpi_total_debt | format_tr }}</span>
+        <span class="hero-dot">•</span>
+        <span class="hero-label">Nợ quá hạn</span>
+        <span class="hero-val text-danger">{{ kpi_total_overdue | format_tr }}</span>
+        <span class="hero-dot">•</span>
+        <span class="hero-label">Nợ &gt; 180 ngày</span>
+        <span class="hero-val" style="color: #B71C1C;">{{ kpi_over_180 | format_tr }}</span>
+    </div>
+
     <div class="row g-4 mb-4">
         <div class="col-lg-4 col-md-6">
             <div class="kpi-card">
@@ -107,33 +131,30 @@
     </div>
     
     <div class="main-card mb-4" x-data>
-        <div class="card-body-custom" style="padding: 20px;">
-            <form hx-post="{{ url_for('kpi_bp.ar_aging_dashboard') }}" 
+        <div class="ar-command-bar">
+            <form hx-post="{{ url_for('kpi_bp.ar_aging_dashboard') }}"
                   hx-target="#ar-table-container"
-                  hx-select="#ar-table-container" 
+                  hx-select="#ar-table-container"
                   hx-swap="outerHTML"
-                  class="row g-3 align-items-end">
-                
-                <div class="col-md-4">
-                    <label for="customer_name" class="form-label">Lọc theo Tên Khách hàng</label>
+                  class="d-flex align-items-end flex-wrap gap-3 flex-grow-1">
+                <div class="input-item flex-grow-1" style="min-width: 200px;">
+                    <label for="customer_name" class="form-label d-block">Tên Khách hàng</label>
                     <div class="input-group">
-                        <span class="input-group-text border-0 bg-transparent ps-3" style="position: absolute; z-index: 10;"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="customer_name" id="customer_name" class="form-control ps-5" 
-                            value="{{ customer_name_filter | default('') }}" 
-                            placeholder="Nhập tên KH (ví dụ: Vina Kraft)..."
-                            hx-post="{{ url_for('kpi_bp.ar_aging_dashboard') }}" 
-                            hx-trigger="keyup changed delay:500ms" 
+                        <span class="input-group-text border-0 bg-transparent ps-3"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="customer_name" id="customer_name" class="form-control ps-4"
+                            value="{{ customer_name_filter | default('') }}"
+                            placeholder="VD: Vina Kraft..."
+                            hx-post="{{ url_for('kpi_bp.ar_aging_dashboard') }}"
+                            hx-trigger="keyup changed delay:500ms"
                             hx-target="#ar-table-container"
-                            hx-select="#ar-table-container" 
+                            hx-select="#ar-table-container"
                             hx-swap="outerHTML">
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i> Lọc ngay
-                        <span class="htmx-indicator spinner-border spinner-border-sm ms-2" role="status"></span>
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary fw-bold px-4">
+                    <i class="fas fa-filter me-2"></i>Lọc
+                    <span class="htmx-indicator spinner-border spinner-border-sm ms-2" role="status"></span>
+                </button>
             </form>
         </div>
     </div>
@@ -195,9 +216,10 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="11" class="text-center text-muted py-5">
-                                <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i><br>
+                            <td colspan="11" class="empty-state-ar">
+                                <i class="fas fa-inbox d-block"></i>
                                 Không tìm thấy dữ liệu công nợ theo tiêu chí lọc.
+                                <div class="mt-3"><a href="/" class="btn btn-outline-primary btn-sm rounded-pill"><i class="fas fa-home me-1"></i>Về Portal</a></div>
                             </td>
                         </tr>
                         {% endfor %}

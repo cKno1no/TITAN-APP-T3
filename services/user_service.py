@@ -19,18 +19,16 @@ class UserService:
             division = config.DIVISION
             
         params = []
-        # [FIXED]: Lọc loại bỏ NULL và 9.DU HOC
+        # Điều kiện Division phải nằm trong WHERE (không nối sau ORDER BY); chỉ một mệnh đề ORDER BY ở cuối.
         query = f"""
             SELECT USERCODE, USERNAME, SHORTNAME, ROLE, [CAP TREN], [BO PHAN], [CHUC VU], [Division], [CreatedDate]
             FROM {config.TEN_BANG_NGUOI_DUNG}
             WHERE [BO PHAN] IS NOT NULL AND [BO PHAN] <> '9.DU HOC'
-            ORDER BY SHORTNAME
         """
         if division:
             query += " AND [Division] = ?"
             params.append(division)
-            
-        query += " ORDER BY USERCODE"
+        query += " ORDER BY SHORTNAME"
         return self.db.get_data(query, tuple(params))
 
     def get_user_detail(self, user_code):
@@ -85,15 +83,21 @@ class UserService:
             return {'success': False, 'message': str(e)}
 
     def delete_user(self, user_code):
+        conn = None
         try:
+            conn = self.db.get_transaction_connection()
+            cursor = conn.cursor()
             tables = ['TitanOS_UserStats', 'TitanOS_UserProfile', 'TitanOS_UserInventory', 'TitanOS_UserPermissions', 'TitanOS_Game_Mailbox']
             for t in tables:
-                self.db.execute_non_query(f"DELETE FROM {t} WHERE UserCode=?", (user_code,))
-            
-            self.db.execute_non_query(f"DELETE FROM {config.TEN_BANG_NGUOI_DUNG} WHERE USERCODE = ?", (user_code,))
+                cursor.execute(f"DELETE FROM {t} WHERE UserCode=?", (user_code,))
+            cursor.execute(f"DELETE FROM {config.TEN_BANG_NGUOI_DUNG} WHERE USERCODE = ?", (user_code,))
+            conn.commit()
             return {'success': True, 'message': 'Đã xóa nhân viên.'}
         except Exception as e:
+            if conn: conn.rollback()
             return {'success': False, 'message': str(e)}
+        finally:
+            if conn: conn.close()
 
     def admin_reset_password(self, user_code, new_pass):
         try:
@@ -148,14 +152,22 @@ class UserService:
         return [row['PermissionCode'] for row in data]
 
     def update_user_permissions(self, user_code, permission_codes):
+        conn = None
         try:
-            self.db.execute_non_query("DELETE FROM TitanOS_UserPermissions WHERE UserCode = ?", (user_code,))
+            conn = self.db.get_transaction_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM TitanOS_UserPermissions WHERE UserCode = ?", (user_code,))
             if permission_codes:
-                for code in permission_codes:
-                    self.db.execute_non_query("INSERT INTO TitanOS_UserPermissions (UserCode, PermissionCode) VALUES (?, ?)", (user_code, code))
+                insert_query = "INSERT INTO TitanOS_UserPermissions (UserCode, PermissionCode) VALUES (?, ?)"
+                params = [(user_code, code) for code in permission_codes]
+                cursor.executemany(insert_query, params)
+            conn.commit()
             return {'success': True, 'message': 'Cập nhật thành công!'}
         except Exception as e:
+            if conn: conn.rollback()
             return {'success': False, 'message': str(e)}
+        finally:
+            if conn: conn.close()
 
     def get_all_divisions(self):
         return self.db.get_data(f"SELECT DISTINCT [Division] FROM {config.TEN_BANG_NGUOI_DUNG} WHERE [Division] IS NOT NULL")
@@ -195,14 +207,16 @@ class UserService:
             try:
                 self.db.execute_non_query("INSERT INTO TitanOS_UserStats (UserCode, Level, CurrentXP, TotalCoins) VALUES (?, 1, 0, 0)", (user_code,))
                 user_profile.update({'Level': 1, 'CurrentXP': 0, 'TotalCoins': 0})
-            except: pass
+            except Exception:
+                pass
             
         # Self-healing Profile
         if 'ThemeColor' not in user_profile or not user_profile['ThemeColor']:
-             try:
+            try:
                 self.db.execute_non_query("INSERT INTO TitanOS_UserProfile (UserCode, EquippedTheme) VALUES (?, 'light')", (user_code,))
                 user_profile['ThemeColor'] = 'light'
-             except: pass
+            except Exception:
+                pass
 
         # XP Calculation
         current_lvl = user_profile['Level']
@@ -249,7 +263,7 @@ class UserService:
     # 4. SHOP & INVENTORY
     # =========================================================================
 
-    def buy_item(self, user_code, item_code):
+    def buy_item(self, user_code, item_code, price=None):
         item = self.db.get_data("SELECT Price, ItemName FROM TitanOS_SystemItems WHERE ItemCode = ?", (item_code,))
         if not item: return {'success': False, 'message': 'Vật phẩm không tồn tại.'}
         

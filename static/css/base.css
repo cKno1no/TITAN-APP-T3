@@ -1,0 +1,150 @@
+/**
+ * Titan OS - Global base styles
+ * Biến CSS theo theme và layout chung cho toàn ứng dụng.
+ */
+
+/* -------------------------------------------------------------------------
+   CSS Variables & Themes
+   ------------------------------------------------------------------------- */
+:root {
+    --primary: #4318FF;
+    --primary-dark: #2A0EBB;
+    --primary-light: #F4F7FE;
+    --secondary: #A3AED0;
+    --text-dark: #2B3674;
+    --danger: #E31A1A;
+    --success: #05CD99;
+    --warning: #FFB547;
+    --info: #33CCFF;
+    --bg-color: #F4F7FE;
+    --card-bg: #FFFFFF;
+    --input-bg: #F4F7FE;
+    --border-color: #E0E5F2;
+    --card-radius: 20px;
+    --shadow-sm: 0 4px 10px rgba(112, 144, 176, 0.08);
+    --shadow-md: 0px 18px 40px rgba(112, 144, 176, 0.12);
+    --bg-image: none;
+    --font-main: 'Inter', sans-serif;
+    --font-header: 'Inter', sans-serif;
+}
+
+[data-theme="dark"] {
+    --primary: #7551FF;
+    --primary-dark: #5A3BC4;
+    --primary-light: #1B254B;
+    --secondary: #A3AED0;
+    --text-dark: #E3E8EF;
+    --danger: #FF5B5B;
+    --bg-color: #0B1437;
+    --card-bg: #111C44;
+    --input-bg: #1B254B;
+    --border-color: #2B3674;
+}
+
+[data-theme="fantasy"] {
+    --primary: #E91E63;
+    --primary-dark: #C2185B;
+    --primary-light: rgba(255, 255, 255, 0.2);
+    --text-dark: #FFFFFF;
+    --secondary: #E0E0E0;
+    --bg-color: #2d1b4e;
+    --card-bg: rgba(255, 255, 255, 0.15);
+    --input-bg: rgba(0, 0, 0, 0.3);
+    --border-color: rgba(255, 255, 255, 0.2);
+    --bg-image: url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5980?auto=format&fit=crop&w=1920&q=80');
+}
+
+[data-theme="adorable"] {
+    --primary: #FF6B81;
+    --primary-dark: #FF4757;
+    --primary-light: #FFECEE;
+    --secondary: #747D8C;
+    --text-dark: #2F3542;
+    --bg-color: #FDF2F5;
+    --card-bg: #FFFFFF;
+    --input-bg: #F8F9FA;
+    --border-color: #F1F2F6;
+    --font-main: 'Quicksand', sans-serif;
+    --font-header: 'Fredoka', sans-serif;
+    --bg-image: radial-gradient(#FFD1D6 15%, transparent 16%), radial-gradient(#FFD1D6 15%, transparent 16%);
+}
+
+/* -------------------------------------------------------------------------
+   Layout & Base
+   ------------------------------------------------------------------------- */
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--text-dark);
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-attachment: fixed;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+}
+
+.container-fluid {
+    max-width: 1600px;
+    padding: 30px 20px;
+}
+
+.main-card {
+    background: var(--card-bg);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.btn {
+    border-radius: 14px;
+    font-weight: 600;
+    padding: 10px 20px;
+}
+
+.form-control,
+.form-select {
+    border: 1px solid transparent;
+    background-color: var(--input-bg);
+    border-radius: 12px;
+    color: var(--text-dark);
+}
+
+.form-control:focus {
+    background-color: var(--card-bg);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 24, 255, 0.2);
+    color: var(--text-dark);
+}
+
+/* Level-up / reward popup */
+.round-glow-popup {
+    border-radius: 50% !important;
+    width: 380px !important;
+    height: 380px !important;
+    padding: 0 !important;
+    background: radial-gradient(circle, #ffffff 30%, #fff8e1 100%) !important;
+    border: 4px solid #FFD700 !important;
+    animation: orbGlow 2s infinite alternate ease-in-out;
+}
+
+@keyframes orbGlow {
+    0% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        transform: scale(1);
+    }
+    100% {
+        box-shadow: 0 0 80px rgba(255, 215, 0, 1);
+        transform: scale(1.02);
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 15px 10px;
+    }
+}

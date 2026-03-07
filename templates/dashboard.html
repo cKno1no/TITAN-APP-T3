@@ -39,6 +39,75 @@
     }
     .btn-filter:hover { background-color: var(--primary-dark); }
     
+    /* STATUS STRIP */
+    .report-status-strip {
+        background: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 10px 16px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .report-status-strip .stat-item { display: flex; align-items: center; gap: 6px; }
+    .report-status-strip .stat-label { color: var(--secondary); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+    .report-status-strip .stat-value { font-weight: 700; }
+
+    /* SAVED VIEWS */
+    .saved-views { display: flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .saved-views-label { font-size: 0.8rem; color: var(--secondary); text-transform: uppercase; font-weight: 600; }
+    .view-pill {
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        padding: 4px 10px;
+        font-size: 0.8rem;
+        color: var(--secondary);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .view-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .view-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: var(--shadow-sm); }
+
+    /* PREVIEW PANEL */
+    .preview-card {
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        box-shadow: var(--shadow-sm);
+        padding: 14px 16px;
+        min-height: 180px;
+    }
+    .preview-card h6 { font-size: 0.85rem; text-transform: uppercase; color: var(--secondary); margin-bottom: 6px; font-weight: 700; }
+    .preview-title { font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
+    .preview-meta { font-size: 0.8rem; color: var(--secondary); margin-bottom: 8px; }
+    .preview-section-label { font-size: 0.75rem; text-transform: uppercase; color: var(--secondary); margin-top: 8px; margin-bottom: 2px; font-weight: 600; }
+    .preview-section-text { font-size: 0.9rem; color: var(--text-dark); }
+
+    .report-row-selected td { outline: 2px solid var(--primary); outline-offset: -2px; background-color: rgba(67, 24, 255, 0.03); }
+
+    .chip-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 4px;
+        margin-bottom: 4px;
+        cursor: pointer;
+        border: 1px solid transparent;
+    }
+    .chip-tag-new { background: rgba(67, 24, 255, 0.08); color: var(--primary); border-color: rgba(67,24,255,0.25); }
+    .chip-tag-care { background: rgba(5, 205, 153, 0.08); color: var(--success); border-color: rgba(5,205,153,0.25); }
+    .chip-tag-complain { background: rgba(227, 26, 26, 0.08); color: var(--danger); border-color: rgba(227,26,26,0.25); }
+
     /* PAGINATION */
     .pagination .page-link {
         background-color: var(--card-bg); border: 1px solid var(--border-color);
@@ -71,38 +140,69 @@
 
 {% block content %}
     <div class="main-card">
-        <form method="POST" action="{{ url_for('crm_bp.dashboard_reports', page=1) }}" class="row g-3 align-items-end">
-            <div class="col-md-2">
-                <label class="form-label">Từ Ngày</label>
-                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+        <div class="p-3">
+            <form method="POST" action="{{ url_for('crm_bp.dashboard_reports', page=1) }}" class="row g-3 align-items-end" id="reportFilterForm">
+                <div class="col-md-2">
+                    <label class="form-label">Từ Ngày</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Đến Ngày</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Nhân viên</label>
+                    <select name="nv_bao_cao" class="form-select">
+                        <option value="">-- Tất cả --</option>
+                        {% for user in users %}
+                        <option value="{{ user.USERCODE }}" {% if selected_user == user.USERCODE %} selected {% endif %}>
+                            {{ user.SHORTNAME }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Khách hàng</label>
+                    <input type="text" name="kh_search" class="form-control" value="{{ kh_search_term }}" placeholder="Tìm tên...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Từ khóa nội dung</label>
+                    <input type="text" name="text_search" class="form-control" value="{{ text_search_term }}" placeholder="Nội dung, đánh giá...">
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-filter"><i class="fas fa-search"></i></button>
+                </div>
+                <input type="hidden" name="saved_view" id="saved_view_input" value="{{ saved_view }}">
+            </form>
+        </div>
+    </div>
+    <div class="report-status-strip">
+        <div class="stat-item">
+            <div>
+                <div class="stat-label">Tổng trong khoảng</div>
+                <div class="stat-value">{{ total_reports|default(0) }} báo cáo</div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Đến Ngày</label>
-                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+        </div>
+        <div class="stat-item">
+            <div>
+                <div class="stat-label">Hôm nay</div>
+                <div class="stat-value">{{ status_today_count|default(0) }} báo cáo</div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Nhân viên</label>
-                <select name="nv_bao_cao" class="form-select">
-                    <option value="">-- Tất cả --</option>
-                    {% for user in users %}
-                    <option value="{{ user.USERCODE }}" {% if selected_user == user.USERCODE %} selected {% endif %}>
-                        {{ user.SHORTNAME }}
-                    </option>
-                    {% endfor %}
-                </select>
+        </div>
+        <div class="stat-item">
+            <div>
+                <div class="stat-label">KH khác nhau</div>
+                <div class="stat-value">{{ status_distinct_customers|default(0) }}</div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Khách hàng</label>
-                <input type="text" name="kh_search" class="form-control" value="{{ kh_search_term }}" placeholder="Tìm tên...">
+        </div>
+        <div class="stat-item ms-auto">
+            <div class="saved-views">
+                <span class="saved-views-label">View</span>
+                <button type="button" class="view-pill" data-view="all">Tất cả</button>
+                <button type="button" class="view-pill" data-view="mine">Chỉ của tôi</button>
+                <button type="button" class="view-pill" data-view="has_files">Có file</button>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Từ khóa nội dung</label>
-                <input type="text" name="text_search" class="form-control" value="{{ text_search_term }}" placeholder="Nội dung, đánh giá...">
-            </div>
-            <div class="col-md-1">
-                <button type="submit" class="btn btn-filter"><i class="fas fa-search"></i></button>
-            </div>
-        </form>
+        </div>
     </div>
 
     <div class="table-container">
@@ -131,14 +231,39 @@
                 </thead>
                 <tbody>
                     {% for row in reports %}
-                    <tr class="report-row" onclick="window.open('{{ url_for('crm_bp.report_detail_page', report_stt=row.ID_KEY) }}', '_blank')">
+                    {% set purpose = row.ND4_VAL or '' %}
+                    {% set result_txt = row.ND5_VAL or '' %}
+                    {% set action_txt = row.DG4_VAL or '' %}
+                    {% set upper_purpose = purpose.upper() %}
+                    {% set has_new = 'GẶP MỚI' in upper_purpose or 'GAP MOI' in upper_purpose %}
+                    {% set has_care = 'CHĂM SÓC' in upper_purpose or 'CARE' in upper_purpose %}
+                    {% set has_complain = 'KHIẾU NẠI' in upper_purpose or 'COMPLAIN' in upper_purpose %}
+                    <tr class="report-row" 
+                        data-detail-url="{{ url_for('crm_bp.report_detail_page', report_stt=row.ID_KEY) }}"
+                        data-kh="{{ row.KH }}"
+                        data-nv="{{ row.NV }}"
+                        data-purpose="{{ purpose }}"
+                        data-result="{{ result_txt }}"
+                        data-action="{{ action_txt }}"
+                        onclick="window.open('{{ url_for('crm_bp.report_detail_page', report_stt=row.ID_KEY) }}', '_blank')">
                         <td class="text-center"><span class="badge-id">#{{ row.ID_KEY }}</span></td>
                         <td class="fw-medium" style="color: var(--secondary); font-size: 0.85rem;">{{ row.NGAY | format_date }}</td>
                         <td class="fw-bold text-primary">{{ row.NV }}</td>
                         <td class="fw-bold" style="color: var(--text-dark);">{{ row.KH }}</td>
                         
                         <td class="content-cell">
-                            {{ row['NOI DUNG 1'] | safe }}
+                            <div>{{ row['NOI DUNG 1'] | safe }}</div>
+                            <div class="mt-1">
+                                {% if has_new %}
+                                    <span class="chip-tag chip-tag-new" data-chip="Gặp mới">Gặp mới</span>
+                                {% endif %}
+                                {% if has_care %}
+                                    <span class="chip-tag chip-tag-care" data-chip="Chăm sóc định kỳ">Chăm sóc</span>
+                                {% endif %}
+                                {% if has_complain %}
+                                    <span class="chip-tag chip-tag-complain" data-chip="Khiếu nại">Khiếu nại</span>
+                                {% endif %}
+                            </div>
                         </td>
                         
                         <td class="content-cell">
@@ -161,7 +286,7 @@
         <div class="d-flex justify-content-center py-4">
             <nav aria-label="Page navigation">
                 <ul class="pagination mb-0">
-                    {% set url_params = {'nv_bao_cao': selected_user, 'date_from': date_from, 'date_to': date_to, 'kh_search': kh_search_term, 'text_search': text_search_term} %}
+                    {% set url_params = {'nv_bao_cao': selected_user, 'date_from': date_from, 'date_to': date_to, 'kh_search': kh_search_term, 'text_search': text_search_term, 'saved_view': saved_view} %}
                     
                     <li class="page-item {% if page == 1 %}disabled{% endif %}">
                         <a class="page-link" href="{{ url_for('crm_bp.dashboard_reports', page=page - 1, **url_params) }}"><i class="fas fa-chevron-left"></i></a>
@@ -213,16 +338,132 @@
             });
             element.innerHTML = html;
         }
-    
+
         document.addEventListener('DOMContentLoaded', function() {
             const rawSearchTerm = '{{ text_search_term | default('') }}';
             const searchTerms = rawSearchTerm.split(';').map(t => t.trim()).filter(t => t.length > 0);
-
             if (searchTerms.length > 0) {
                 document.querySelectorAll('.content-cell').forEach(cell => {
                     highlightSearchTerm(cell, searchTerms);
                 });
             }
+
+            // Toast sau khi lưu báo cáo (từ redirect /nhaplieu)
+            const successMessage = {{ (success_message or '') | tojson }};
+            const reportId = {{ (report_id or '') | tojson }};
+            if (successMessage && typeof Swal !== 'undefined') {
+                const text = reportId ? 'Đã lưu báo cáo #' + reportId : successMessage;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: text,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            }
+
+            const form = document.getElementById('reportFilterForm');
+            const savedViewInput = document.getElementById('saved_view_input');
+            const currentUserCode = '{{ current_user_code|default('') }}';
+            const currentView = '{{ saved_view|default('') }}';
+
+            document.querySelectorAll('.view-pill').forEach(btn => {
+                const v = btn.getAttribute('data-view');
+                if (v === currentView) btn.classList.add('active');
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.view-pill').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    if (!form) return;
+                    if (v === 'all') {
+                        const sel = form.querySelector('select[name="nv_bao_cao"]');
+                        if (sel) sel.value = '';
+                        const kh = form.querySelector('input[name="kh_search"]');
+                        const txt = form.querySelector('input[name="text_search"]');
+                        if (kh) kh.value = '';
+                        if (txt) txt.value = '';
+                    } else if (v === 'mine') {
+                        const sel = form.querySelector('select[name="nv_bao_cao"]');
+                        if (sel && currentUserCode) sel.value = currentUserCode;
+                    } else if (v === 'has_files') {
+                        // hiện tại chỉ lưu view, filter chi tiết có thể mở rộng thêm sau
+                    }
+                    if (savedViewInput) savedViewInput.value = v;
+                    try { localStorage.setItem('crm_dashboard_saved_view', v); } catch(e) {}
+                    form.submit();
+                });
+            });
+
+            const rows = Array.from(document.querySelectorAll('.report-row'));
+            let selectedIndex = -1;
+
+            function updatePreviewFromRow(row) {
+                if (!row) return;
+                const kh = row.getAttribute('data-kh') || '';
+                const nv = row.getAttribute('data-nv') || '';
+                const purpose = row.getAttribute('data-purpose') || '—';
+                const result = row.getAttribute('data-result') || '—';
+                const action = row.getAttribute('data-action') || '—';
+                const idBadge = row.querySelector('.badge-id');
+                const idText = idBadge ? idBadge.textContent.trim() : '';
+
+                const titleEl = document.getElementById('preview-title');
+                const metaEl = document.getElementById('preview-meta');
+                const purEl = document.getElementById('preview-purpose');
+                const resEl = document.getElementById('preview-result');
+                const actEl = document.getElementById('preview-action');
+                if (!titleEl || !metaEl || !purEl || !resEl || !actEl) return;
+
+                titleEl.textContent = idText + (kh ? ' · ' + kh : '');
+                metaEl.textContent = nv ? ('Người báo cáo: ' + nv) : '';
+                purEl.textContent = purpose;
+                resEl.textContent = result;
+                actEl.textContent = action;
+            }
+
+            rows.forEach((row, idx) => {
+                row.addEventListener('mouseover', function() {
+                    updatePreviewFromRow(this);
+                });
+                row.addEventListener('click', function() {
+                    rows.forEach(r => r.classList.remove('report-row-selected'));
+                    this.classList.add('report-row-selected');
+                    selectedIndex = idx;
+                    updatePreviewFromRow(this);
+                });
+
+                row.querySelectorAll('.chip-tag').forEach(chip => {
+                    chip.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const label = this.getAttribute('data-chip') || this.textContent;
+                        if (!form) return;
+                        const txt = form.querySelector('input[name="text_search"]');
+                        if (txt) txt.value = label;
+                        form.submit();
+                    });
+                });
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (!rows.length) return;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (selectedIndex === -1) selectedIndex = 0;
+                    else if (e.key === 'ArrowDown' && selectedIndex < rows.length - 1) selectedIndex++;
+                    else if (e.key === 'ArrowUp' && selectedIndex > 0) selectedIndex--;
+                    rows.forEach(r => r.classList.remove('report-row-selected'));
+                    const row = rows[selectedIndex];
+                    row.classList.add('report-row-selected');
+                    row.scrollIntoView({ block: 'nearest' });
+                    updatePreviewFromRow(row);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    const row = rows[selectedIndex];
+                    const url = row.getAttribute('data-detail-url');
+                    if (url) window.open(url, '_blank');
+                }
+            });
         });
     </script>
 {% endblock %}

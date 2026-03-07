@@ -590,14 +590,30 @@
 
     function buyItem(itemCode, price) {
         if(!confirm(`Mua vật phẩm này với giá ${price} Coins?`)) return;
-        fetch('/api/user/buy_item', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_code: itemCode })})
-        .then(r=>r.json()).then(res=>{ 
-            if(res.success) {
-                fireConfetti();
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                alert(res.message);
+        Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        fetch('/api/user/buy_item', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item_code: itemCode, price: price }) })
+        .then(function(r) {
+            var ct = (r.headers.get('Content-Type') || '').toLowerCase();
+            if (!r.ok) {
+                if (r.status === 401 || r.status === 403) return Promise.reject(new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'));
+                if (ct.indexOf('application/json') !== -1) return r.json().then(function(d) { return Promise.reject(new Error(d.message || 'Lỗi từ máy chủ.')); });
+                return r.text().then(function(t) { return Promise.reject(new Error('Lỗi ' + r.status + '. Vui lòng thử lại.')); });
             }
+            if (ct.indexOf('application/json') !== -1) return r.json();
+            return Promise.reject(new Error('Phản hồi không hợp lệ.'));
+        })
+        .then(function(res) {
+            Swal.close();
+            if (res.success) {
+                fireConfetti();
+                Swal.fire({ icon: 'success', title: 'Mua thành công!', text: res.message || '' }).then(function() { location.reload(); });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Không mua được', text: res.message || 'Đã xảy ra lỗi.' });
+            }
+        })
+        .catch(function(err) {
+            Swal.close();
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: (err && err.message) ? err.message : 'Không thể kết nối. Vui lòng thử lại.' });
         });
     }
 
@@ -622,54 +638,103 @@
         .then(r=>r.json()).then(res=>{ alert(res.message); if(res.success) location.reload(); });
     }
 
-    // Logic kiểm tra thẻ đổi tên
-    {% set has_card = false %}
+    // Logic kiểm tra thẻ đổi tên (Jinja: dùng namespace để set trong vòng lặp)
+    {% set ns = namespace(has_rename_card=false) %}
     {% for item in inventory %}
         {% if item.ItemCode == 'rename_card' %}
-            {% set has_card = true %}
+            {% set ns.has_rename_card = true %}
         {% endif %}
     {% endfor %}
 
     function requestRename() {
-        const hasCard = {{ 'true' if has_card else 'false' }};
-        if(!hasCard) {
-            if(confirm("Bạn cần 'Thẻ Đổi Tên'. Đến Shop mua ngay?")) {
+        const hasCard = {{ 'true' if ns.has_rename_card else 'false' }};
+        if (!hasCard) {
+            if (window.Swal) {
+                window.Swal.fire({
+                    icon: 'info',
+                    title: 'Cần Thẻ Đổi Tên',
+                    text: 'Bạn chưa có thẻ. Đến Shop mua thẻ rồi quay lại dùng nhé!',
+                    confirmButtonText: 'Đến Shop',
+                    showCancelButton: true,
+                    cancelButtonText: 'Để sau'
+                }).then(function(r) {
+                    if (r.isConfirmed) {
+                        var triggerEl = document.querySelector('button[data-bs-target="#tab-shop"]');
+                        if (triggerEl) { var tab = bootstrap.Tab.getInstance(triggerEl) || new bootstrap.Tab(triggerEl); tab.show(); }
+                    }
+                });
+            } else if (confirm("Bạn cần 'Thẻ Đổi Tên'. Đến Shop mua ngay?")) {
                 var triggerEl = document.querySelector('button[data-bs-target="#tab-shop"]');
-                var tabInstance = bootstrap.Tab.getInstance(triggerEl) || new bootstrap.Tab(triggerEl);
-                tabInstance.show();
+                if (triggerEl) { var tab = bootstrap.Tab.getInstance(triggerEl) || new bootstrap.Tab(triggerEl); tab.show(); }
             }
             return;
         }
 
-        let currentName = document.getElementById('display-name').innerText.trim();
-        let newName = prompt("Nhập biệt danh mới (Tối đa 20 ký tự):", currentName);
-
-        if (newName !== null) {
-            newName = newName.trim();
-            if (newName === "" || newName === currentName) return;
-            
-            fetch('/api/user/use_rename_card', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nickname: newName })
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) {
-                    fireConfetti();
-                    document.getElementById('display-name').innerText = newName;
-                    
-                    // Xóa vật phẩm UI
-                    const cardElement = document.getElementById('inventory-item-rename_card');
-                    if (cardElement) cardElement.remove();
-
-                    alert("✅ Đổi tên thành công!");
-                    location.reload();
-                } else {
-                    alert("❌ " + res.message);
+        var currentName = (document.getElementById('display-name') && document.getElementById('display-name').innerText) ? document.getElementById('display-name').innerText.trim() : '';
+        if (window.Swal) {
+            window.Swal.fire({
+                title: 'Đổi biệt danh',
+                input: 'text',
+                inputLabel: 'Tối đa 20 ký tự',
+                inputValue: currentName,
+                inputAttributes: { maxlength: 20 },
+                showCancelButton: true,
+                confirmButtonText: 'Đổi tên',
+                cancelButtonText: 'Hủy',
+                inputValidator: function(v) {
+                    v = (v || '').trim();
+                    if (!v) return 'Vui lòng nhập tên.';
+                    if (v.length > 20) return 'Tối đa 20 ký tự.';
+                    if (v === currentName) return 'Tên mới phải khác tên hiện tại.';
+                    return null;
                 }
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+                var newName = (result.value || '').trim();
+                if (!newName || newName === currentName) return;
+                doRename(newName);
             });
+        } else {
+            var newName = prompt("Nhập biệt danh mới (Tối đa 20 ký tự):", currentName);
+            if (newName !== null) {
+                newName = newName.trim();
+                if (newName && newName !== currentName) doRename(newName);
+            }
         }
+    }
+
+    function doRename(newName) {
+        if (window.Swal) { window.Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: function() { window.Swal.showLoading(); } }); }
+        fetch('/api/user/use_rename_card', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nickname: newName })
+        })
+        .then(function(r) {
+            if (!r.ok) return Promise.reject(new Error('Lỗi kết nối'));
+            return r.json();
+        })
+        .then(function(res) {
+            if (res.success) {
+                fireConfetti();
+                if (document.getElementById('display-name')) document.getElementById('display-name').innerText = newName;
+                var cardEl = document.getElementById('inventory-item-rename_card');
+                if (cardEl) cardEl.remove();
+                if (window.Swal) {
+                    window.Swal.fire({ icon: 'success', title: 'Đổi tên thành công!', text: res.message }).then(function() { location.reload(); });
+                } else { alert('Đổi tên thành công!'); location.reload(); }
+            } else {
+                if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Không đổi được', text: res.message || 'Thử lại sau.' });
+                else alert('❌ ' + (res.message || 'Lỗi'));
+            }
+        })
+        .catch(function(err) {
+            if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Lỗi', text: (err && err.message) || 'Vui lòng thử lại.' });
+            else alert('Lỗi kết nối. Thử lại.');
+        })
+        .finally(function() {
+            if (window.Swal) window.Swal.close();
+        });
     }
 
     function useConsumable(itemCode, itemName) {

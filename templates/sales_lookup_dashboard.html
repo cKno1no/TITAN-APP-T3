@@ -4,77 +4,88 @@
 
 {% block extra_css %}
 <style>
-    /* --- CUSTOM LAYOUT & THEME --- */
-    .main-card {
+    /* --- COMMAND BAR & CONTEXT --- */
+    .lookup-command-bar {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 16px 20px; background: var(--card-bg); border-radius: var(--card-radius);
+        border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); margin-bottom: 16px;
+    }
+    .lookup-command-bar .form-control, .lookup-command-bar .form-select {
+        border: 1px solid var(--border-color); background: var(--input-bg); border-radius: 12px;
+        padding: 10px 14px; font-size: 0.95rem; height: 44px;
+    }
+    .lookup-command-bar .input-item { flex: 1; min-width: 180px; }
+    .lookup-command-bar .input-kh { flex: 1; min-width: 220px; position: relative; }
+    .lookup-command-bar .btn-action { padding: 10px 18px; border-radius: 12px; font-weight: 600; height: 44px; border: none; transition: all 0.2s; white-space: nowrap; }
+    .btn-lookup-custom { background: var(--primary); color: white; }
+    .btn-lookup-custom:hover { background: var(--primary-dark); color: white; }
+    .btn-quick-lookup { background: var(--warning); color: #000; }
+    .btn-quick-lookup:hover { background: #ffc44f; color: #000; }
+    .btn-quick-lookup:disabled { opacity: 0.8; cursor: not-allowed; }
+
+    .lookup-context-strip {
+        display: none; padding: 10px 16px; margin-bottom: 16px; font-size: 0.9rem;
+        background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px;
+        color: var(--secondary);
+    }
+    .lookup-context-strip.visible { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .lookup-context-strip strong { color: var(--text-dark); }
+
+    /* --- HERO BLOCK 1 --- */
+    .lookup-hero-card {
         border: none; background: var(--card-bg); border-radius: var(--card-radius);
-        box-shadow: var(--shadow-sm); margin-bottom: 20px; overflow: hidden;
+        box-shadow: var(--shadow-md); margin-bottom: 20px; overflow: hidden;
         border: 1px solid var(--border-color);
     }
-    .card-header-custom {
-        background-color: var(--card-bg); color: var(--text-dark); font-weight: 700; font-size: 1.1rem;
-        padding: 20px 25px; border-bottom: 1px solid var(--border-color);
+    .lookup-hero-card .card-header-custom {
+        background: var(--input-bg); color: var(--primary); font-weight: 700; padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
         display: flex; justify-content: space-between; align-items: center;
     }
-    .card-header-custom i { font-size: 1.1rem; margin-right: 12px; color: var(--primary); }
-    .card-body-custom { padding: 25px; background-color: var(--card-bg); }
+    .lookup-hero-card .card-body-custom { padding: 20px; }
 
-    /* Result Headers */
-    .card-header-custom.result-header { background-color: var(--input-bg); color: var(--primary); }
-    .card-header-custom.result-header i { color: var(--primary); }
-    .card-header-custom.result-header-2 i { color: var(--success); }
-    .card-header-custom.result-header-3 i { color: var(--warning); }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+        background: var(--input-bg) !important; color: var(--secondary);
+        padding: 12px 10px; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color);
+    }
+    .data-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; color: var(--text-dark); }
+    .data-table tbody tr { cursor: pointer; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; }
+    .data-table tbody tr:hover { background: var(--input-bg); border-left-color: var(--primary); }
 
-    /* Inputs & Buttons */
-    .form-label { font-weight: 600; color: var(--text-dark); font-size: 0.9rem; margin-bottom: 8px; }
-    .form-control, .form-select {
-        border: 1px solid var(--border-color); background-color: var(--input-bg); border-radius: 16px;
-        padding: 12px 15px; font-size: 0.95rem; color: var(--text-dark); box-shadow: none; height: 48px;
+    /* --- HISTORY CARD (Tabs) --- */
+    .lookup-history-card {
+        border: 1px solid var(--border-color); border-radius: var(--card-radius);
+        box-shadow: var(--shadow-sm); margin-bottom: 20px; overflow: hidden; background: var(--card-bg);
     }
-    .form-control:focus, .form-select:focus { background-color: var(--card-bg); border-color: var(--primary); }
-
-    .btn-action { padding: 12px 20px; border-radius: 16px; font-weight: 600; border: none; height: 48px; transition: all 0.2s; }
-    .btn-lookup-custom { background-color: var(--primary); color: white; }
-    .btn-lookup-custom:hover { background-color: var(--primary-dark); }
-    .btn-quick-lookup { background-color: var(--warning); color: #000; }
-    .btn-quick-lookup:hover { background-color: #ffc44f; }
-    
-    .button-column-fix { padding-top: 32px; }
-
-    /* Tables */
-    .data-table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px; }
-    .data-table th { 
-        background-color: var(--input-bg) !important; color: var(--secondary) !important;
-        padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border-color); 
-        font-weight: 600; font-size: 0.85rem; text-transform: uppercase;
-    }
-    .data-table td { 
-        padding: 12px 10px; border-bottom: 1px solid var(--border-color); 
-        font-size: 0.95rem; color: var(--text-dark);
-    }
-    .data-table tbody tr:hover { background-color: var(--input-bg); }
-    
-    /* History Table */
-    .history-table { width: 100%; margin-top: 10px; font-size: 0.8rem; }
-    .history-table th { 
-        background-color: var(--input-bg); color: var(--primary); 
-        padding: 8px; text-align: center; border: 1px solid var(--border-color); 
-        white-space: nowrap; font-size: 0.8rem;
-    }
+    .lookup-history-card .nav-tabs { border-bottom: 1px solid var(--border-color); padding: 0 16px; background: var(--input-bg); }
+    .lookup-history-card .nav-link { border: none; border-radius: 12px 12px 0 0; font-weight: 600; padding: 12px 20px; color: var(--secondary); }
+    .lookup-history-card .nav-link:hover { color: var(--primary); }
+    .lookup-history-card .nav-link.active { background: var(--card-bg); color: var(--primary); border-bottom: 2px solid var(--card-bg); margin-bottom: -1px; }
+    .lookup-history-card .tab-content { padding: 16px; }
+    .history-table { width: 100%; font-size: 0.8rem; }
+    .history-table th { background: var(--input-bg); color: var(--primary); padding: 8px; text-align: center; border: 1px solid var(--border-color); white-space: nowrap; }
     .history-table td { padding: 6px; border: 1px solid var(--border-color); text-align: center; white-space: nowrap; color: var(--text-dark); }
-    
-    /* Search Dropdown */
-    .search-results-dropdown { 
-        width: 100%; border-radius: 12px; border: 1px solid var(--primary);
-        position: absolute; z-index: 1000; margin-top: 5px; background: var(--card-bg);
-        box-shadow: var(--shadow-md); display: none;
+
+    .search-results-dropdown {
+        position: absolute; z-index: 1000; margin-top: 4px; width: 100%;
+        border-radius: 12px; border: 1px solid var(--primary); background: var(--card-bg); box-shadow: var(--shadow-md); display: none;
     }
 
-    /* Mobile */
+    /* --- EMPTY & LOADING --- */
+    .lookup-placeholder { text-align: center; padding: 48px 24px; color: var(--secondary); }
+    .lookup-placeholder i { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .lookup-empty-state { text-align: center; padding: 32px; background: #fefce8; border: 1px dashed #facc15; border-radius: 16px; margin-top: 16px; }
+    .lookup-skeleton { padding: 20px; }
+    .lookup-skeleton .shimmer { height: 60px; border-radius: 12px; background: linear-gradient(90deg, var(--input-bg) 25%, rgba(255,255,255,0.1) 50%, var(--input-bg) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+    .lookup-skeleton .shimmer + .shimmer { margin-top: 12px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
     @media (max-width: 768px) {
-        .button-column-fix { padding-top: 0 !important; margin-top: 10px; }
-        .btn-action { width: 100%; }
-        .table-responsive { overflow-x: auto; }
-        .data-table th, .data-table td { white-space: nowrap; padding: 10px 5px; }
+        .lookup-command-bar { flex-direction: column; align-items: stretch; }
+        .lookup-command-bar .input-item, .lookup-command-bar .input-kh { min-width: 100%; }
+        .lookup-command-bar .d-flex { flex-direction: column; }
+        .data-table th, .data-table td { white-space: nowrap; padding: 10px 6px; font-size: 0.85rem; }
     }
 </style>
 {% endblock %}
@@ -87,63 +98,60 @@
 {% endblock %}
 
 {% block content %}
-    <div class="main-card" id="lookup-card">
-        <div class="card-header-custom">
-            <span><i class="fas fa-search"></i> Thông tin Tra cứu</span>
-        </div>
-        <div class="card-body-custom">
-            <form method="POST" action="{{ url_for('lookup_bp.sales_lookup_dashboard') }}" class="row g-3">
-                
-                <div class="col-md-4">
-                    <label class="form-label">Tìm theo Mã/Tên Mặt hàng</label>
-                    <input type="text" id="item_search_input" name="item_search" 
-                           placeholder="Gõ Mã/Tên (VD: 23152, 6220)" class="form-control"
-                           value="{{ item_search | default('') }}">
-                    <small class="form-text text-muted mt-2 d-block">Ngăn cách bằng dấu phẩy (,).</small>
-                </div>
-
-                <div class="col-md-5 search-container">
-                    <label class="form-label">Tìm theo Mã/Tên Khách hàng (Tùy chọn)</label>
-                    <input type="text" id="kh_search_input" 
-                           placeholder="Gõ Mã/Tên Khách hàng..." class="form-control"
-                           value="{{ object_id_display | default('') }}">
-                    <small id="kh_status" class="form-text text-muted mt-2 d-block">Để trống nếu muốn xem giá chung.</small>
-
-                    <input type="hidden" name="object_id" id="kh_ma_selected" value="{{ object_id | default('') }}">
-                    <input type="hidden" name="object_id_display" id="kh_display_selected" value="{{ object_id_display | default('') }}">
-                    <select id="kh_search_results" class="form-select search-results-dropdown" size="5" onchange="chonKhachHang()"></select>
-                </div>
-                
-                <div class="col-md-3 button-column-fix">
-                    <div class="d-flex w-100 gap-2">
-                        <button type="button" class="btn-action btn-quick-lookup w-50" id="quickLookupBtn" title="Tra nhanh Tồn">
-                            <i class="fas fa-bolt"></i> Tra nhanh
-                        </button>
-                        <button type="submit" class="btn-action btn-lookup-custom w-50">
-                            <i class="fas fa-search"></i> Tra cứu
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div class="main-card" id="block1-container" {% if not results.block1 %}style="display: none;"{% endif %}>
-        <div class="card-header-custom result-header">
-            <div>
-                <i class="fas fa-warehouse"></i>
-                <span>1. Tồn kho và Giá (Khớp với '{{ item_search }}')</span>
+    <form method="POST" action="{{ url_for('lookup_bp.sales_lookup_dashboard') }}" id="lookupForm" class="lookup-form">
+        <div class="lookup-command-bar">
+            <div class="input-item">
+                <input type="text" id="item_search_input" name="item_search" class="form-control"
+                       placeholder="Mã hoặc tên mặt hàng (VD: 23152, 6220)..."
+                       value="{{ item_search | default('') }}" title="Ngăn cách nhiều mã bằng dấu phẩy">
             </div>
-            <div class="form-check form-switch">
+            <div class="input-kh search-container">
+                <input type="text" id="kh_search_input" class="form-control" placeholder="Mã/Tên khách hàng (tùy chọn)..."
+                       value="{{ object_id_display | default('') }}">
+                <input type="hidden" name="object_id" id="kh_ma_selected" value="{{ object_id | default('') }}">
+                <input type="hidden" name="object_id_display" id="kh_display_selected" value="{{ object_id_display | default('') }}">
+                <select id="kh_search_results" class="form-select search-results-dropdown" size="5" onchange="chonKhachHang()"></select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn-action btn-quick-lookup" id="quickLookupBtn" title="Tra nhanh Tồn">
+                    <i class="fas fa-bolt"></i> Tra nhanh
+                </button>
+                <button type="submit" class="btn-action btn-lookup-custom">
+                    <i class="fas fa-search"></i> Tra cứu
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="lookup-context-strip" id="lookupContextStrip">
+        <span><i class="fas fa-info-circle me-1"></i> Đang xem: <strong id="ctxCount">0</strong> mặt hàng</span>
+        <span class="text-muted">·</span>
+        <span>Khách: <strong id="ctxKh">Giá chung</strong></span>
+        <span class="text-muted">·</span>
+        <span>Cập nhật: <strong>vừa xong</strong></span>
+    </div>
+
+    <div class="lookup-placeholder" id="lookupPlaceholder" {% if results.block1 %}style="display: none;"{% endif %}>
+        <i class="fas fa-search"></i>
+        <p class="mb-0">Nhập mã hàng và bấm <strong>Tra cứu</strong> hoặc <strong>Tra nhanh</strong>.</p>
+    </div>
+
+    <div class="lookup-skeleton" id="lookupSkeleton" style="display: none;">
+        <div class="shimmer"></div><div class="shimmer"></div><div class="shimmer"></div>
+    </div>
+
+    <div class="lookup-hero-card" id="block1-container" {% if not results.block1 %}style="display: none;"{% endif %}>
+        <div class="card-header-custom">
+            <span><i class="fas fa-warehouse me-2"></i>Tồn kho và Giá (Khớp với '{{ item_search | default("—") }}')</span>
+            <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" id="toggleTonKho">
-                <label class="form-check-label small fw-bold" for="toggleTonKho">Tồn > 0</label>
+                <label class="form-check-label small fw-bold" for="toggleTonKho">Tồn &gt; 0</label>
             </div>
         </div>
         <div class="card-body-custom">
             <div id="block1-filter-toolbar" class="mb-3"></div>
-            
             <div class="table-responsive">
-                <table id="block1-table" class="data-table table table-hover">
+                <table id="block1-table" class="data-table table table-hover mb-0">
                     <thead>
                         <tr>
                             <th class="text-start">Mã hàng</th>
@@ -157,13 +165,12 @@
                     </thead>
                     <tbody>
                         {% for item in results.block1 %}
-                        <tr style="cursor: pointer;" onclick="showBackorderModal('{{ item.InventoryID }}', {{ item.InventoryName | tojson }})">
+                        <tr title="Tồn: {{ item.Ton | format_number }} · BackOrder: {{ item.BackOrder | format_number }} · Click xem BackOrder"
+                            onclick="showBackorderModal('{{ item.InventoryID }}', {{ item.InventoryName | tojson }})">
                             <td class="text-start text-primary fw-bold">{{ item.InventoryID }}</td>
                             <td class="text-start text-wrap" style="max-width: 300px;">{{ item.InventoryName }}</td>
-                            
                             <td class="text-end fw-bold">{{ item.Ton | format_number }}</td>
                             <td class="text-end text-danger">{{ item.BackOrder | format_number }}</td>
-                            
                             <td class="text-end text-success fw-bold">{{ item.GiaBanQuyDinh | format_number }}</td>
                             <td class="text-end">{{ item.GiaBanGanNhat_HD | format_number }}</td>
                             <td class="text-end">{{ item.GiaChaoGanNhat_BG | format_number }}</td>
@@ -174,118 +181,99 @@
             </div>
         </div>
     </div>
-        
-    {% if show_block_2 and results.block2 %}
-    <div class="main-card" id="block2-container">
-        <div class="card-header-custom result-header result-header-2">
-            <span><i class="fas fa-shipping-fast"></i> 2. Lịch sử ĐH Bán, Xuất kho & Hóa đơn (Top 20)</span>
-        </div>
-        <div class="card-body-custom" style="padding: 10px 15px;">
-            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                <table class="history-table table table-sm table-bordered">
-                    <thead>
-                        <tr style="background-color: var(--input-bg);">
-                            <th colspan="4" class="text-center" style="color: var(--primary);">Đơn Hàng Bán</th>
-                            <th colspan="3" class="text-center" style="color: var(--success);">Phiếu Xuất Kho</th>
-                            <th colspan="3" class="text-center" style="color: var(--warning);">Hóa Đơn</th>
-                        </tr>
-                        <tr>
-                            <th>Số ĐH</th>
-                            <th>Ngày ĐH</th>
-                            <th class="text-end">SL</th>
-                            <th class="text-end">Giá</th>
-                            <th>Số PXK</th>
-                            <th>Ngày PXK</th>
-                            <th class="text-end">SL Xuất</th>
-                            <th>Số HĐ</th>
-                            <th>Ngày HĐ</th>
-                            <th class="text-end">SL HĐ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for history in results.block2 %}
-                        <tr>
-                            <td class="text-nowrap">{{ history.VoucherNo | default('—') }}</td>
-                            <td>{{ history.OrderDate | format_date }}</td>
-                            <td class="text-end">{{ history.OrderQuantity | format_number }}</td>
-                            <td class="text-end">{{ history.SalePrice | format_number }}</td>
-                            
-                            <td class="text-start">{{ history.SoPXK | default('—') }}</td>
-                            <td>{{ history.NgayPXK | format_date }}</td>
-                            <td class="text-end">{{ history.SL_PXK | format_number }}</td>
-                            
-                            <td class="text-start">{{ history.SoHoaDon | default('—') }}</td>
-                            <td>{{ history.NgayHĐ | format_date }}</td>
-                            <td class="text-end">{{ history.SL_HoaDon | format_number }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+
+    {% if show_block_2 or show_block_3 %}
+    <div class="lookup-history-card" id="history-container" style="{% if not ((show_block_2 and results.block2) or (show_block_3 and results.block3)) %}display: none;{% endif %}">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabHistory2"><i class="fas fa-shipping-fast me-1"></i>ĐH Bán, Xuất kho & HĐ (Top 20)</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabHistory3"><i class="fas fa-truck-loading me-1"></i>PO & Phiếu Nhập (Top 20)</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tabHistory2">
+                {% if show_block_2 and results.block2 %}
+                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                    <table class="history-table table table-sm table-bordered mb-0">
+                        <thead>
+                            <tr><th colspan="4" class="text-center" style="color: var(--primary);">Đơn Hàng Bán</th><th colspan="3" class="text-center" style="color: var(--success);">Phiếu Xuất Kho</th><th colspan="3" class="text-center" style="color: var(--warning);">Hóa Đơn</th></tr>
+                            <tr>
+                                <th>Số ĐH</th><th>Ngày ĐH</th><th class="text-end">SL</th><th class="text-end">Giá</th>
+                                <th>Số PXK</th><th>Ngày PXK</th><th class="text-end">SL Xuất</th>
+                                <th>Số HĐ</th><th>Ngày HĐ</th><th class="text-end">SL HĐ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for history in results.block2 %}
+                            <tr>
+                                <td class="text-nowrap">{{ history.VoucherNo | default('—') }}</td>
+                                <td>{{ history.OrderDate | format_date }}</td>
+                                <td class="text-end">{{ history.OrderQuantity | format_number }}</td>
+                                <td class="text-end">{{ history.SalePrice | format_number }}</td>
+                                <td class="text-start">{{ history.SoPXK | default('—') }}</td>
+                                <td>{{ history.NgayPXK | format_date }}</td>
+                                <td class="text-end">{{ history.SL_PXK | format_number }}</td>
+                                <td class="text-start">{{ history.SoHoaDon | default('—') }}</td>
+                                <td>{{ history.NgayHĐ | format_date }}</td>
+                                <td class="text-end">{{ history.SL_HoaDon | format_number }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">Không có lịch sử ĐH Bán / Xuất / HĐ.</p>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="tabHistory3">
+                {% if show_block_3 and results.block3 %}
+                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                    <table class="history-table table table-sm table-bordered mb-0">
+                        <thead>
+                            <tr><th colspan="4" class="text-center" style="color: var(--primary);">Tham chiếu ĐH Bán</th><th colspan="3" class="text-center" style="color: var(--warning);">Đơn Hàng Mua (PO)</th><th colspan="3" class="text-center" style="color: var(--success);">Phiếu Nhập Kho</th></tr>
+                            <tr>
+                                <th>Số ĐH</th><th>Ngày ĐH</th><th class="text-end">SL</th><th class="text-end">Giá</th>
+                                <th>Số PO</th><th>Ngày PO</th><th class="text-end">SL PO</th>
+                                <th>Số PN</th><th>Ngày PN</th><th class="text-end">SL PN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for history in results.block3 %}
+                            <tr>
+                                <td class="text-nowrap">{{ history.VoucherNo | default('—') }}</td>
+                                <td>{{ history.OrderDate | format_date }}</td>
+                                <td class="text-end">{{ history.OrderQuantity | format_number }}</td>
+                                <td class="text-end">{{ history.SalePrice | format_number }}</td>
+                                <td class="text-start">{{ history.SoPO | default('—') }}</td>
+                                <td>{{ history.NgayPO | format_date }}</td>
+                                <td class="text-end">{{ history.SL_PO | format_number }}</td>
+                                <td class="text-start">{{ history.SoPN | default('—') }}</td>
+                                <td>{{ history.NgayPN | format_date }}</td>
+                                <td class="text-end">{{ history.SL_PN | format_number }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">Không có lịch sử PO & Phiếu Nhập.</p>
+                {% endif %}
             </div>
         </div>
     </div>
     {% endif %}
-    
-    {% if show_block_3 and results.block3 %}
-    <div class="main-card" id="block3-container">
-        <div class="card-header-custom result-header result-header-3">
-            <span><i class="fas fa-truck-loading"></i> 3. Lịch sử Đơn hàng Mua (PO) & Phiếu Nhập (Top 20)</span>
-        </div>
-        <div class="card-body-custom" style="padding: 10px 15px;">
-            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                <table class="history-table table table-sm table-bordered">
-                    <thead>
-                        <tr style="background-color: var(--input-bg);">
-                            <th colspan="4" class="text-center" style="color: var(--primary);">Tham chiếu ĐH Bán</th>
-                            <th colspan="3" class="text-center" style="color: var(--warning);">Đơn Hàng Mua (PO)</th>
-                            <th colspan="3" class="text-center" style="color: var(--success);">Phiếu Nhập Kho</th>
-                        </tr>
-                        <tr>
-                            <th>Số ĐH</th>
-                            <th>Ngày ĐH</th>
-                            <th class="text-end">SL</th>
-                            <th class="text-end">Giá</th>
-                            <th>Số PO</th>
-                            <th>Ngày PO</th>
-                            <th class="text-end">SL PO</th>
-                            <th>Số PN</th>
-                            <th>Ngày PN</th>
-                            <th class="text-end">SL PN</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for history in results.block3 %}
-                        <tr>
-                            <td class="text-nowrap">{{ history.VoucherNo | default('—') }}</td>
-                            <td>{{ history.OrderDate | format_date }}</td>
-                            <td class="text-end">{{ history.OrderQuantity | format_number }}</td>
-                            <td class="text-end">{{ history.SalePrice | format_number }}</td>
-                            
-                            <td class="text-start">{{ history.SoPO | default('—') }}</td>
-                            <td>{{ history.NgayPO | format_date }}</td>
-                            <td class="text-end">{{ history.SL_PO | format_number }}</td>
-                            
-                            <td class="text-start">{{ history.SoPN | default('—') }}</td>
-                            <td>{{ history.NgayPN | format_date }}</td>
-                            <td class="text-end">{{ history.SL_PN | format_number }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
+
     {% if request.method == 'POST' and (not results.block1 and not results.block2 and not results.block3) %}
-         <p class="alert alert-warning rounded-4 mt-3 text-center">Không tìm thấy dữ liệu phù hợp.</p>
+    <div class="lookup-empty-state">
+        <i class="fas fa-inbox fa-2x text-warning mb-2"></i>
+        <p class="mb-1 fw-bold">Không tìm thấy dữ liệu phù hợp.</p>
+        <p class="small mb-0 text-muted">Thử mở rộng từ khóa, bỏ bớt lọc khách hàng hoặc kiểm tra lại mã mặt hàng.</p>
+    </div>
     {% endif %}
 
     <div class="modal fade" id="backorderModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content" style="background: var(--card-bg);">
                 <div class="modal-header" style="background: var(--primary); color: white;">
-                    <h5 class="modal-title" id="backorderModalTitle">Chi tiết BackOrder</h5> 
+                    <h5 class="modal-title" id="backorderModalTitle">Chi tiết BackOrder</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="backorderModalBody">
@@ -294,10 +282,56 @@
             </div>
         </div>
     </div>
-
 {% endblock %}
 
 {% block scripts %}
-    <script type="text/javascript" src="https://cdn.datatables.net/v/bs5/dt-1.11.5/datatables.min.js"></script>
-    <script src="{{ url_for('static', filename='js/sales_lookup.js') }}"></script>
+<script src="https://cdn.datatables.net/v/bs5/dt-1.11.5/datatables.min.js"></script>
+<script src="{{ url_for('static', filename='js/sales_lookup.js') }}"></script>
+<script>
+(function() {
+    var strip = document.getElementById('lookupContextStrip');
+    var placeholder = document.getElementById('lookupPlaceholder');
+    var block1 = document.getElementById('block1-container');
+    var ctxCount = document.getElementById('ctxCount');
+    var ctxKh = document.getElementById('ctxKh');
+    var form = document.getElementById('lookupForm');
+    var skeleton = document.getElementById('lookupSkeleton');
+
+    function updateContext() {
+        var rows = block1 && block1.querySelectorAll('#block1-table tbody tr');
+        var n = rows ? rows.length : 0;
+        if (typeof $ !== 'undefined' && $('#block1-table').length && $.fn.DataTable && $.fn.DataTable.isDataTable('#block1-table')) {
+            n = $('#block1-table').DataTable().rows({ search: 'applied' }).count();
+        }
+        var kh = document.getElementById('kh_display_selected') && document.getElementById('kh_display_selected').value;
+        if (n > 0 && block1 && block1.style.display !== 'none') {
+            if (ctxCount) ctxCount.textContent = n;
+            if (ctxKh) ctxKh.textContent = kh && kh.trim() ? kh : 'Giá chung';
+            if (strip) { strip.classList.add('visible'); strip.style.display = 'flex'; }
+            if (placeholder) placeholder.style.display = 'none';
+        } else if (!block1 || block1.style.display === 'none') {
+            if (strip) { strip.classList.remove('visible'); strip.style.display = 'none'; }
+        }
+    }
+
+    if (form) {
+        form.addEventListener('submit', function() {
+            if (placeholder) placeholder.style.display = 'none';
+            if (skeleton) skeleton.style.display = 'block';
+            setTimeout(function() {
+                if (skeleton) skeleton.style.display = 'none';
+                updateContext();
+            }, 800);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateContext();
+        if (block1 && block1.style.display !== 'none' && document.querySelector('#block1-table tbody tr')) {
+            setTimeout(updateContext, 500);
+        }
+    });
+    window.updateLookupContext = updateContext;
+})();
+</script>
 {% endblock %}

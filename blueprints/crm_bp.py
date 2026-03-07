@@ -17,21 +17,34 @@ def dashboard_reports():
         'date_to': request.form.get('date_to') or request.args.get('date_to') or today.strftime('%Y-%m-%d'),
         'selected_user': request.form.get('nv_bao_cao') or request.args.get('nv_bao_cao') or '',
         'kh_search': request.form.get('kh_search') or request.args.get('kh_search') or '',
-        'text_search': request.form.get('text_search') or request.args.get('text_search') or ''
+        'text_search': request.form.get('text_search') or request.args.get('text_search') or '',
+        'saved_view': request.form.get('saved_view') or request.args.get('saved_view') or ''
     }
     
     page = int(request.args.get('page', 1))
     role = session.get('user_role', '').strip().upper()
     code = session.get('user_code')
 
-    users_data, report_data, total_reports, total_pages = current_app.crm_service.get_dashboard_data(
+    result = current_app.crm_service.get_dashboard_data(
         filters, page, 20, role, code, get_user_ip()
     )
+    # Chấp nhận cả 4 hoặc 5 giá trị (service cũ có thể chỉ trả 4)
+    if len(result) == 5:
+        users_data, report_data, total_reports, total_pages, status_metrics = result
+    else:
+        users_data, report_data, total_reports, total_pages = result
+        status_metrics = {'today_count': 0, 'distinct_customers': 0}
 
+    success_message = request.args.get('success_message', '')
+    report_id = request.args.get('report_id', '')
     return render_template(
-        'dashboard.html', 
+        'dashboard.html',
         users=users_data, reports=report_data, page=page,
         total_reports=total_reports, total_pages=total_pages,
+        success_message=success_message, report_id=report_id,
+        status_today_count=status_metrics.get('today_count', 0),
+        status_distinct_customers=status_metrics.get('distinct_customers', 0),
+        current_user_code=code or '',
         **filters
     )
 
@@ -54,9 +67,12 @@ def report_detail_page(report_stt):
 def nhap_lieu():
     if request.method == 'POST':
         attachments_str = save_uploaded_files(request.files.getlist('attachment_file')) 
-        success, message = current_app.crm_service.create_report(
+        result = current_app.crm_service.create_report(
             request.form, attachments_str, session.get('user_code'), get_user_ip()
         )
+        success = result[0]
+        message = result[1]
+        report_stt = result[2] if len(result) > 2 else None
         if success:
             # Ghi nhận Gamification
             try:
@@ -64,8 +80,10 @@ def nhap_lieu():
                 current_app.gamification_service.log_activity(nguoi_bao_cao, 'CREATE_REPORT')
             except Exception as e:
                 current_app.logger.error(f"Gamification Error: {e}")
-                
-            return redirect(url_for('crm_bp.dashboard_reports', success_message='Lưu thành công!'))
+            q = {'success_message': message}
+            if report_stt:
+                q['report_id'] = report_stt
+            return redirect(url_for('crm_bp.dashboard_reports', **q))
         else:
             flash(message, "danger")
 

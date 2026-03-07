@@ -120,7 +120,8 @@ class CommissionService:
                 user_table = getattr(config, 'TEN_BANG_NGUOI_DUNG', '[GD - NGUOI DUNG]')
                 u_data = self.db.get_data(f"SELECT SHORTNAME FROM {user_table} WHERE USERCODE = ?", (creator_code,))
                 if u_data: creator_name = u_data[0]['SHORTNAME']
-            except: pass
+            except Exception:
+                pass
             creator_display = f"{creator_name} ({creator_code})"
 
             # Số liệu AR & Sales
@@ -182,8 +183,10 @@ class CommissionService:
             
             days_diff = 0
             if master.get('DEN_NGAY') and master.get('TU_NGAY'):
-                try: days_diff = (master['DEN_NGAY'] - master['TU_NGAY']).days
-                except: pass
+                try:
+                    days_diff = (master['DEN_NGAY'] - master['TU_NGAY']).days
+                except Exception:
+                    pass
             
             print_time = datetime.now().strftime("Ngày %d tháng %m năm %Y, %H:%M")
 

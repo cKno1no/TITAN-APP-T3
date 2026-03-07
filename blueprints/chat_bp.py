@@ -64,9 +64,9 @@ def api_chatbot_query():
                 details=f"Lỗi câu hỏi: {message}. Exception: {str(e)}",
                 ip_address=user_ip
             )
-        except:
+        except Exception:
             pass
-            
+
         return jsonify({'response': f'Lỗi hệ thống: {str(e)}'}), 500
 
 # === THÊM ROUTE NÀY VÀO ===
